@@ -4,23 +4,32 @@ import { SEO } from '../../components/SEO';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { FileUploader } from '../../components/FileUploader';
 import { ProgressBar } from '../../components/ProgressBar';
-import { DownloadButton } from '../../components/DownloadButton';
 import { HowToSection } from '../../components/HowToSection';
 import { FAQSection } from '../../components/FAQSection';
 import { RelatedTools } from '../../components/RelatedTools';
 import { AdPlaceholder } from '../../components/AdPlaceholder';
+import { ConversionValidationCard } from '../../components/ConversionValidationCard';
 import { TOOLS_DATA } from '../../data/toolsData';
-import { pptToPDF, downloadPDF } from '../../utils/pdfUtils';
+import {
+  pptToPDF,
+  downloadPDF,
+  createIntegrityRecord,
+  validatePdfOutput,
+  type FileIntegrityRecord,
+  type ValidationResult
+} from '../../utils/pdfUtils';
 
 export const PPTToPDF: React.FC = () => {
   const tool = TOOLS_DATA['ppt-to-pdf'];
   const [file, setFile] = useState<File | null>(null);
+  const [integrityRecord, setIntegrityRecord] = useState<FileIntegrityRecord | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
-  const handleFilesSelected = (newFiles: File[]) => {
+  const handleFilesSelected = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
     const selected = newFiles[0];
     if (!selected.name.toLowerCase().endsWith('.pptx')) {
@@ -29,7 +38,15 @@ export const PPTToPDF: React.FC = () => {
     }
     setError(null);
     setPdfBytes(null);
+    setValidationResult(null);
     setFile(selected);
+
+    try {
+      const record = await createIntegrityRecord(selected);
+      setIntegrityRecord(record);
+    } catch {
+      setIntegrityRecord(null);
+    }
   };
 
   const handleConvert = async () => {
@@ -44,7 +61,10 @@ export const PPTToPDF: React.FC = () => {
 
     try {
       const output = await pptToPDF(file, (p) => setProgress(p));
+      const validation = await validatePdfOutput(output);
+
       setPdfBytes(output);
+      setValidationResult(validation);
       setProgress(100);
     } catch (err: any) {
       console.error(err);
@@ -62,7 +82,9 @@ export const PPTToPDF: React.FC = () => {
 
   const handleReset = () => {
     setFile(null);
+    setIntegrityRecord(null);
     setPdfBytes(null);
+    setValidationResult(null);
     setError(null);
   };
 
@@ -93,8 +115,8 @@ export const PPTToPDF: React.FC = () => {
             accept=".pptx"
             multiple={false}
             onFilesSelected={handleFilesSelected}
-            title="Choose a PowerPoint (.pptx) file to convert"
-            subtitle="Converts PowerPoint presentation slides to universal PDF documents. 100% private."
+            title="Choose a PowerPoint (.pptx) presentation"
+            subtitle="Drop your PowerPoint file here or browse files. 100% processed locally in your browser."
           />
         )}
 
@@ -107,7 +129,10 @@ export const PPTToPDF: React.FC = () => {
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-slate-900 truncate text-sm">{file.name}</p>
-                  <p className="text-xs text-slate-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  <p className="text-xs text-slate-500">
+                    {(file.size / (1024 * 1024)).toFixed(2)} MB
+                    {integrityRecord && ` • SHA-256: ${integrityRecord.shortHash}`}
+                  </p>
                 </div>
               </div>
               <button
@@ -119,15 +144,15 @@ export const PPTToPDF: React.FC = () => {
               </button>
             </div>
 
-            {/* Browser Renderer Note & Limitations */}
-            <div className="p-4 bg-orange-50/70 border border-orange-200/60 rounded-2xl flex items-start gap-3">
+            {/* Media & Slide Extraction Notice */}
+            <div className="p-4 bg-orange-50/80 border border-orange-200/60 rounded-2xl flex items-start gap-3">
               <Info className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm text-orange-950 leading-relaxed space-y-1">
+              <div className="text-xs sm:text-sm text-orange-900 leading-relaxed space-y-1">
                 <div>
-                  <span className="font-semibold">Supported Elements:</span> Slide text blocks, titles, font sizing, background colors, embedded PNG/JPG imagery, and 16:9 widescreen layout dimensions.
+                  <span className="font-semibold">Slide Structure & Media:</span> Reconstructs 16:9 widescreen slides into PDF vector pages, preserving titles, bullet points, and embedded slide media assets from ppt/media.
                 </div>
                 <div>
-                  <span className="font-semibold">Conversion Limitations:</span> Complex native PowerPoint vector shapes, smart tables, dynamic Excel charts, slide transition animations, and embedded audio/video clips are omitted or flattened during browser-side OpenXML rendering.
+                  <span className="font-semibold">Conversion Limitations:</span> Transition effects, automated audio narrations, and video player plugins are flattened into static presentation pages.
                 </div>
               </div>
             </div>
@@ -139,7 +164,7 @@ export const PPTToPDF: React.FC = () => {
               </div>
             )}
 
-            {isProcessing && <ProgressBar progress={progress} statusText="Parsing slide packages & rendering PDF..." />}
+            {isProcessing && <ProgressBar progress={progress} statusText="Extracting slide XML & media into PDF pages..." />}
 
             <button
               type="button"
@@ -153,38 +178,31 @@ export const PPTToPDF: React.FC = () => {
           </div>
         )}
 
-        {pdfBytes && (
-          <div className="py-2">
-            <DownloadButton
-              onDownload={handleDownload}
-              onReset={handleReset}
-              buttonText="Download Presentation PDF"
-              filename={file ? `${file.name.replace(/\.pptx$/i, '')}-slides.pdf` : 'presentation.pdf'}
-              subText="Successfully converted PowerPoint slides to widescreen PDF document."
-            />
-          </div>
+        {pdfBytes && file && (
+          <ConversionValidationCard
+            validationResult={validationResult}
+            integrityRecord={integrityRecord}
+            originalFile={file}
+            outputFilename={`${file.name.replace(/\.pptx$/i, '')}-slides.pdf`}
+            onDownloadConverted={handleDownload}
+            onReset={handleReset}
+          />
         )}
       </div>
 
-      <AdPlaceholder />
-
-      {/* SEO & Educational Content */}
-      <div className="prose prose-slate max-w-none bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 mb-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">{tool.articleContent.heading}</h2>
-        {tool.articleContent.sections.map((section, idx) => (
-          <div key={idx} className="mb-6 last:mb-0">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">{section.subheading}</h3>
-            <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{section.content}</p>
-          </div>
-        ))}
-      </div>
-
-      <HowToSection toolName={tool.name} steps={tool.howToSteps} />
-      <FAQSection faqs={tool.faqs} toolName={tool.name} />
-      <RelatedTools currentToolId={tool.id} relatedIds={tool.relatedToolIds} />
-      <AdPlaceholder />
+      <HowToSection
+        steps={tool.howToSteps}
+        toolName={tool.name}
+        directAnswer={tool.directAnswer}
+      />
+      <FAQSection
+        faqs={tool.faqs}
+        toolName={tool.name}
+      />
+      <RelatedTools
+        currentToolId={tool.id}
+        relatedIds={tool.relatedToolIds}
+      />
     </div>
   );
 };
-
-export default PPTToPDF;

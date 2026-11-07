@@ -4,23 +4,32 @@ import { SEO } from '../../components/SEO';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { FileUploader } from '../../components/FileUploader';
 import { ProgressBar } from '../../components/ProgressBar';
-import { DownloadButton } from '../../components/DownloadButton';
 import { HowToSection } from '../../components/HowToSection';
 import { FAQSection } from '../../components/FAQSection';
 import { RelatedTools } from '../../components/RelatedTools';
 import { AdPlaceholder } from '../../components/AdPlaceholder';
+import { ConversionValidationCard } from '../../components/ConversionValidationCard';
 import { TOOLS_DATA } from '../../data/toolsData';
-import { excelToPDF, downloadPDF } from '../../utils/pdfUtils';
+import {
+  excelToPDF,
+  downloadPDF,
+  createIntegrityRecord,
+  validatePdfOutput,
+  type FileIntegrityRecord,
+  type ValidationResult
+} from '../../utils/pdfUtils';
 
 export const ExcelToPDF: React.FC = () => {
   const tool = TOOLS_DATA['excel-to-pdf'];
   const [file, setFile] = useState<File | null>(null);
+  const [integrityRecord, setIntegrityRecord] = useState<FileIntegrityRecord | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
-  const handleFilesSelected = (newFiles: File[]) => {
+  const handleFilesSelected = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
     const selected = newFiles[0];
     const name = selected.name.toLowerCase();
@@ -30,7 +39,15 @@ export const ExcelToPDF: React.FC = () => {
     }
     setError(null);
     setPdfBytes(null);
+    setValidationResult(null);
     setFile(selected);
+
+    try {
+      const record = await createIntegrityRecord(selected);
+      setIntegrityRecord(record);
+    } catch {
+      setIntegrityRecord(null);
+    }
   };
 
   const handleConvert = async () => {
@@ -45,7 +62,10 @@ export const ExcelToPDF: React.FC = () => {
 
     try {
       const output = await excelToPDF(file, (p) => setProgress(p));
+      const validation = await validatePdfOutput(output);
+
       setPdfBytes(output);
+      setValidationResult(validation);
       setProgress(100);
     } catch (err: any) {
       console.error(err);
@@ -63,7 +83,9 @@ export const ExcelToPDF: React.FC = () => {
 
   const handleReset = () => {
     setFile(null);
+    setIntegrityRecord(null);
     setPdfBytes(null);
+    setValidationResult(null);
     setError(null);
   };
 
@@ -94,8 +116,8 @@ export const ExcelToPDF: React.FC = () => {
             accept=".xlsx,.xls,.csv"
             multiple={false}
             onFilesSelected={handleFilesSelected}
-            title="Choose an Excel or CSV file to convert"
-            subtitle="Supports .xlsx, .xls, and .csv files. Converted cleanly and privately in your browser."
+            title="Choose a Spreadsheet to convert to PDF"
+            subtitle="Drop your .xlsx, .xls, or .csv here. 100% processed locally in your browser."
           />
         )}
 
@@ -108,7 +130,10 @@ export const ExcelToPDF: React.FC = () => {
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-slate-900 truncate text-sm">{file.name}</p>
-                  <p className="text-xs text-slate-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  <p className="text-xs text-slate-500">
+                    {(file.size / (1024 * 1024)).toFixed(2)} MB
+                    {integrityRecord && ` • SHA-256: ${integrityRecord.shortHash}`}
+                  </p>
                 </div>
               </div>
               <button
@@ -120,15 +145,15 @@ export const ExcelToPDF: React.FC = () => {
               </button>
             </div>
 
-            {/* Smart Auto-Layout Note & Limitations */}
+            {/* Smart Formatting Notice */}
             <div className="p-4 bg-emerald-50/80 border border-emerald-200/60 rounded-2xl flex items-start gap-3">
               <Info className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm text-emerald-950 leading-relaxed space-y-1">
+              <div className="text-xs sm:text-sm text-emerald-900 leading-relaxed space-y-1">
                 <div>
-                  <span className="font-semibold">Supported Elements:</span> Evaluated formula results, text, numbers, dates, automated column widths, and auto-orientation (switches to Landscape for wide sheets with &gt;5 columns).
+                  <span className="font-semibold">Auto-Orientation & Fitting:</span> Tables exceeding standard portrait widths automatically switch to Landscape (A4) layout. Dynamic column auto-fitting prevents abrupt cell clipping.
                 </div>
                 <div>
-                  <span className="font-semibold">Conversion Limitations:</span> Renders the primary/active worksheet; dynamic Excel chart objects, user-defined print area masks, custom cell comments, and secondary worksheets are not rendered in single-table PDF export mode.
+                  <span className="font-semibold">Conversion Limitations:</span> Active Excel macro code (VBA) and live external database linkages are rendered as static calculated snapshots.
                 </div>
               </div>
             </div>
@@ -140,7 +165,7 @@ export const ExcelToPDF: React.FC = () => {
               </div>
             )}
 
-            {isProcessing && <ProgressBar progress={progress} statusText="Rendering worksheet grids & generating PDF..." />}
+            {isProcessing && <ProgressBar progress={progress} statusText="Formatting cell grid & compiling PDF document..." />}
 
             <button
               type="button"
@@ -154,38 +179,31 @@ export const ExcelToPDF: React.FC = () => {
           </div>
         )}
 
-        {pdfBytes && (
-          <div className="py-2">
-            <DownloadButton
-              onDownload={handleDownload}
-              onReset={handleReset}
-              buttonText="Download PDF Document"
-              filename={file ? `${file.name.replace(/\.(xlsx|xls|csv)$/i, '')}-converted.pdf` : 'report.pdf'}
-              subText="Successfully converted spreadsheet to publication-ready PDF."
-            />
-          </div>
+        {pdfBytes && file && (
+          <ConversionValidationCard
+            validationResult={validationResult}
+            integrityRecord={integrityRecord}
+            originalFile={file}
+            outputFilename={`${file.name.replace(/\.(xlsx|xls|csv)$/i, '')}-converted.pdf`}
+            onDownloadConverted={handleDownload}
+            onReset={handleReset}
+          />
         )}
       </div>
 
-      <AdPlaceholder />
-
-      {/* SEO & Educational Content */}
-      <div className="prose prose-slate max-w-none bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 mb-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">{tool.articleContent.heading}</h2>
-        {tool.articleContent.sections.map((section, idx) => (
-          <div key={idx} className="mb-6 last:mb-0">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">{section.subheading}</h3>
-            <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{section.content}</p>
-          </div>
-        ))}
-      </div>
-
-      <HowToSection toolName={tool.name} steps={tool.howToSteps} />
-      <FAQSection faqs={tool.faqs} toolName={tool.name} />
-      <RelatedTools currentToolId={tool.id} relatedIds={tool.relatedToolIds} />
-      <AdPlaceholder />
+      <HowToSection
+        steps={tool.howToSteps}
+        toolName={tool.name}
+        directAnswer={tool.directAnswer}
+      />
+      <FAQSection
+        faqs={tool.faqs}
+        toolName={tool.name}
+      />
+      <RelatedTools
+        currentToolId={tool.id}
+        relatedIds={tool.relatedToolIds}
+      />
     </div>
   );
 };
-
-export default ExcelToPDF;

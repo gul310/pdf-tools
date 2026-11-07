@@ -1,0 +1,6 @@
+# Cloudflare Pages Headers Configuration
+# Ensures temporary staging/preview deployments are not indexed by search engines
+
+/*
+  X-Robots-Tag: noindex, nofollow
+  X-Content-Type-Options: nosniff

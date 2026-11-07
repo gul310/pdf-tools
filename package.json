@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node test-production-qa.mjs && npx tsx test-extended-tools.mjs"
+    "test": "node test-production-qa.mjs && npx tsx test-extended-tools.mjs && npx tsx test-phase-b.mjs && npx tsx test-phase-c.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",
@@ -34,6 +34,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.90.0",
+    "puppeteer-core": "^25.16.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.6"
   }

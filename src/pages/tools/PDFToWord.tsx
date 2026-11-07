@@ -1,34 +1,48 @@
 import React, { useState } from 'react';
-import { FileText, AlertCircle, Info, Sparkles } from 'lucide-react';
+import { FileText, AlertCircle, Info, Sparkles, Layers, Edit3 } from 'lucide-react';
 import { SEO } from '../../components/SEO';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { FileUploader } from '../../components/FileUploader';
 import { ProgressBar } from '../../components/ProgressBar';
-import { DownloadButton } from '../../components/DownloadButton';
 import { HowToSection } from '../../components/HowToSection';
 import { FAQSection } from '../../components/FAQSection';
 import { RelatedTools } from '../../components/RelatedTools';
 import { AdPlaceholder } from '../../components/AdPlaceholder';
+import { ConversionValidationCard } from '../../components/ConversionValidationCard';
 import { TOOLS_DATA } from '../../data/toolsData';
-import { pdfToWord, downloadDocx, getPDFInfo } from '../../utils/pdfUtils';
+import {
+  pdfToWord,
+  downloadDocx,
+  getPDFInfo,
+  createIntegrityRecord,
+  validateDocxOutput,
+  type FileIntegrityRecord,
+  type ValidationResult
+} from '../../utils/pdfUtils';
 
 export const PDFToWord: React.FC = () => {
   const tool = TOOLS_DATA['pdf-to-word'];
   const [file, setFile] = useState<File | null>(null);
+  const [integrityRecord, setIntegrityRecord] = useState<FileIntegrityRecord | null>(null);
   const [pageCount, setPageCount] = useState<number | null>(null);
+  const [mode, setMode] = useState<'editable' | 'visual'>('editable');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
   const handleFilesSelected = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
     setError(null);
     setDocxBlob(null);
+    setValidationResult(null);
     const selected = newFiles[0];
     setFile(selected);
 
     try {
+      const record = await createIntegrityRecord(selected);
+      setIntegrityRecord(record);
       const info = await getPDFInfo(selected);
       setPageCount(info.pageCount);
     } catch {
@@ -47,8 +61,14 @@ export const PDFToWord: React.FC = () => {
     setError(null);
 
     try {
-      const blob = await pdfToWord(file, (p) => setProgress(p));
+      const blob = await pdfToWord(file, { mode, detectTables: true }, (p) => setProgress(p));
+      const validation = await validateDocxOutput(blob, {
+        sourcePageCount: pageCount || undefined,
+        mode
+      });
+
       setDocxBlob(blob);
+      setValidationResult(validation);
       setProgress(100);
     } catch (err: any) {
       console.error(err);
@@ -66,7 +86,9 @@ export const PDFToWord: React.FC = () => {
 
   const handleReset = () => {
     setFile(null);
+    setIntegrityRecord(null);
     setDocxBlob(null);
+    setValidationResult(null);
     setError(null);
   };
 
@@ -98,7 +120,7 @@ export const PDFToWord: React.FC = () => {
             multiple={false}
             onFilesSelected={handleFilesSelected}
             title="Choose a PDF file to convert to Word"
-            subtitle="Drop your PDF here or browse files. 100% processed in your browser."
+            subtitle="Drop your PDF here or browse files. 100% processed in your browser with zero server uploads."
           />
         )}
 
@@ -113,6 +135,7 @@ export const PDFToWord: React.FC = () => {
                   <p className="font-semibold text-slate-900 truncate text-sm">{file.name}</p>
                   <p className="text-xs text-slate-500">
                     {(file.size / (1024 * 1024)).toFixed(2)} MB {pageCount ? `• ${pageCount} pages` : ''}
+                    {integrityRecord && ` • SHA-256: ${integrityRecord.shortHash}`}
                   </p>
                 </div>
               </div>
@@ -125,15 +148,71 @@ export const PDFToWord: React.FC = () => {
               </button>
             </div>
 
+            {/* Mode Selection */}
+            <div className="space-y-3">
+              <label className="block text-sm font-bold text-slate-900">
+                Choose Conversion Mode:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMode('editable')}
+                  className={`p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                    mode === 'editable'
+                      ? 'border-blue-600 bg-blue-50/50 ring-2 ring-blue-600/20'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div
+                    className={`p-2 rounded-xl shrink-0 ${
+                      mode === 'editable' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    <Edit3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">Mode A: Editable Document</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Extracts editable paragraphs, headings, bullet points, and detected Word tables.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode('visual')}
+                  className={`p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                    mode === 'visual'
+                      ? 'border-blue-600 bg-blue-50/50 ring-2 ring-blue-600/20'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div
+                    className={`p-2 rounded-xl shrink-0 ${
+                      mode === 'visual' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">Mode B: Exact Visual Conversion</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Preserves 100% of complex layouts, vector graphics, and fonts as high-res OpenXML slides.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Layout Reconstruction Notice & Disclosed Limitations */}
             <div className="p-4 bg-blue-50/80 border border-blue-200/60 rounded-2xl flex items-start gap-3">
               <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
               <div className="text-xs sm:text-sm text-blue-900 leading-relaxed space-y-1">
                 <div>
-                  <span className="font-semibold">Supported Elements:</span> Sequential text streams, typographical font sizes, heading classifications, and paragraph groupings into standards-compliant OpenXML (.docx).
+                  <span className="font-semibold">Supported Elements:</span> Sequential text streams, typographical font sizes, heading classifications, detected tables, and standards-compliant OpenXML (.docx).
                 </div>
                 <div>
-                  <span className="font-semibold">Conversion Limitations:</span> Multi-column spreads reflow in reading order; embedded raster images, complex borderless tables, vector shapes, and running headers/footers are extracted into formatted text paragraphs rather than native Word drawing objects.
+                  <span className="font-semibold">Conversion Limitations:</span> In Editable Mode, complex multi-column flow reflows in reading order. For 100% identical graphical appearance, use Exact Visual Mode.
                 </div>
               </div>
             </div>
@@ -145,7 +224,7 @@ export const PDFToWord: React.FC = () => {
               </div>
             )}
 
-            {isProcessing && <ProgressBar progress={progress} statusText="Parsing text streams & constructing DOCX..." />}
+            {isProcessing && <ProgressBar progress={progress} statusText="Processing document with client-side engine..." />}
 
             <button
               type="button"
@@ -159,38 +238,31 @@ export const PDFToWord: React.FC = () => {
           </div>
         )}
 
-        {docxBlob && (
-          <div className="py-2">
-            <DownloadButton
-              onDownload={handleDownload}
-              onReset={handleReset}
-              buttonText="Download Word Document (.docx)"
-              filename={file ? `${file.name.replace(/\.pdf$/i, '')}-converted.docx` : 'document.docx'}
-              subText="Successfully converted PDF to editable Microsoft Word document."
-            />
-          </div>
+        {docxBlob && file && (
+          <ConversionValidationCard
+            validationResult={validationResult}
+            integrityRecord={integrityRecord}
+            originalFile={file}
+            outputFilename={`${file.name.replace(/\.pdf$/i, '')}-converted.docx`}
+            onDownloadConverted={handleDownload}
+            onReset={handleReset}
+          />
         )}
       </div>
 
-      <AdPlaceholder />
-
-      {/* SEO & Educational Content */}
-      <div className="prose prose-slate max-w-none bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 mb-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">{tool.articleContent.heading}</h2>
-        {tool.articleContent.sections.map((section, idx) => (
-          <div key={idx} className="mb-6 last:mb-0">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">{section.subheading}</h3>
-            <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{section.content}</p>
-          </div>
-        ))}
-      </div>
-
-      <HowToSection toolName={tool.name} steps={tool.howToSteps} />
-      <FAQSection faqs={tool.faqs} toolName={tool.name} />
-      <RelatedTools currentToolId={tool.id} relatedIds={tool.relatedToolIds} />
-      <AdPlaceholder />
+      <HowToSection
+        steps={tool.howToSteps}
+        toolName={tool.name}
+        directAnswer={tool.directAnswer}
+      />
+      <FAQSection
+        faqs={tool.faqs}
+        toolName={tool.name}
+      />
+      <RelatedTools
+        currentToolId={tool.id}
+        relatedIds={tool.relatedToolIds}
+      />
     </div>
   );
 };
-
-export default PDFToWord;

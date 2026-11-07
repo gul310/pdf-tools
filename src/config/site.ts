@@ -12,8 +12,6 @@ export const SITE_CONFIG = {
 
 export function getCanonicalUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')) {
-    return `${window.location.origin}${cleanPath}`;
-  }
+  // Production canonical domain is always preserved to prevent preview staging canonical drift
   return `${SITE_CONFIG.domain}${cleanPath}`;
 }

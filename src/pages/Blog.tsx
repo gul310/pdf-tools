@@ -76,6 +76,63 @@ const BLOG_POSTS: BlogPost[] = [
         content: 'Modern PDF optimization focuses on syntax cleanliness. Packing uncompressed individual PDF objects into consolidated object streams, stripping unused font subset descriptors, and linearizing cross-reference tables reduces file sizes by 30% to 60% without touching a single image pixel.'
       }
     ]
+  },
+  {
+    id: 'pdf-to-word-formatting-guide',
+    title: 'How to Convert PDF to Word Without Losing Complex Formatting or Tables',
+    summary: 'Discover how modern coordinate clustering and table boundary detection algorithms translate fixed PDF page coordinates into editable OpenXML paragraphs and tables.',
+    category: 'Conversion Fidelity',
+    date: 'March 2, 2026',
+    readTime: '6 min read',
+    icon: BookOpen,
+    sections: [
+      {
+        heading: 'The Coordinate-to-Flow Problem',
+        content: 'PDF files do not store paragraphs or tables. They store individual character glyphs at precise (x, y) Cartesian coordinates on an immutable canvas. Word documents, conversely, use flowable XML DOM trees. Converting from fixed coordinates to flowable text requires clustering horizontal items into lines, detecting column gutters, and reconstructing genuine table grids.'
+      },
+      {
+        heading: 'Preserving Headings and Typographical Hierarchy',
+        content: 'By analyzing font bounding box metrics and relative size ratios against the document baseline, smart conversion engines map large text to Heading 1 and Heading 2 styles, preserving the document outline for Microsoft Word navigation panes.'
+      }
+    ]
+  },
+  {
+    id: 'pdf-to-excel-table-preservation',
+    title: 'How to Extract Tables from PDF to Excel Without Column Shifting',
+    summary: 'Learn how Canonical Column Boundary Projection detects shared vertical alignment across rows, preventing jagged column shifts and preserving numeric data types.',
+    category: 'Data Extraction',
+    date: 'February 22, 2026',
+    readTime: '5 min read',
+    icon: Cpu,
+    sections: [
+      {
+        heading: 'The Root Cause of Column Shifting',
+        content: 'Naive converters split table rows by spaces or arbitrary intervals. If row 1 has 4 columns and row 2 has an empty cell in column 1, naive splitters shift column 2 leftward into column 1, corrupting financial records and inventory counts.'
+      },
+      {
+        heading: 'Canonical Column Boundary Projection',
+        content: 'Modern engines construct a global X-coordinate histogram across the entire page to identify the canonical column boundaries. Each cell is mapped to its nearest projected column anchor, inserting clean empty cells where data is missing to ensure perfect columnar alignment.'
+      }
+    ]
+  },
+  {
+    id: 'editable-vs-visual-document-conversion',
+    title: 'Editable vs. Exact Visual Document Conversion: Which Mode Should You Choose?',
+    summary: 'Understand the technical tradeoffs between Mode A (Editable Reconstruction) and Mode B (Exact Visual Fidelity) to choose the best conversion strategy for your workflow.',
+    category: 'Architecture Guide',
+    date: 'January 18, 2026',
+    readTime: '4 min read',
+    icon: Lock,
+    sections: [
+      {
+        heading: 'Mode A: Editable Reconstruction',
+        content: 'Mode A reconstructs the document using native text runs, paragraphs, and standard tables. Choose Mode A when you need to edit wording, revise financial figures, or reformat text in Word or Excel.'
+      },
+      {
+        heading: 'Mode B: Exact Visual Conversion',
+        content: 'Mode B renders pages as high-resolution embedded canvases inside the destination document. Choose Mode B when preserving 100% of intricate graphic designs, marketing brochures, CAD schematics, and custom fonts is more important than textual editing.'
+      }
+    ]
   }
 ];
 

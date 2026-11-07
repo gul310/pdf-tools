@@ -4,31 +4,44 @@ import { SEO } from '../../components/SEO';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { FileUploader } from '../../components/FileUploader';
 import { ProgressBar } from '../../components/ProgressBar';
-import { DownloadButton } from '../../components/DownloadButton';
 import { HowToSection } from '../../components/HowToSection';
 import { FAQSection } from '../../components/FAQSection';
 import { RelatedTools } from '../../components/RelatedTools';
 import { AdPlaceholder } from '../../components/AdPlaceholder';
+import { ConversionValidationCard } from '../../components/ConversionValidationCard';
 import { TOOLS_DATA } from '../../data/toolsData';
-import { pdfToExcel, downloadXlsx, getPDFInfo } from '../../utils/pdfUtils';
+import {
+  pdfToExcel,
+  downloadXlsx,
+  getPDFInfo,
+  createIntegrityRecord,
+  validateXlsxOutput,
+  type FileIntegrityRecord,
+  type ValidationResult
+} from '../../utils/pdfUtils';
 
 export const PDFToExcel: React.FC = () => {
   const tool = TOOLS_DATA['pdf-to-excel'];
   const [file, setFile] = useState<File | null>(null);
+  const [integrityRecord, setIntegrityRecord] = useState<FileIntegrityRecord | null>(null);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [xlsxBytes, setXlsxBytes] = useState<Uint8Array | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
   const handleFilesSelected = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
     setError(null);
     setXlsxBytes(null);
+    setValidationResult(null);
     const selected = newFiles[0];
     setFile(selected);
 
     try {
+      const record = await createIntegrityRecord(selected);
+      setIntegrityRecord(record);
       const info = await getPDFInfo(selected);
       setPageCount(info.pageCount);
     } catch {
@@ -48,7 +61,10 @@ export const PDFToExcel: React.FC = () => {
 
     try {
       const output = await pdfToExcel(file, (p) => setProgress(p));
+      const validation = await validateXlsxOutput(output, pageCount || undefined);
+
       setXlsxBytes(output);
+      setValidationResult(validation);
       setProgress(100);
     } catch (err: any) {
       console.error(err);
@@ -66,7 +82,9 @@ export const PDFToExcel: React.FC = () => {
 
   const handleReset = () => {
     setFile(null);
+    setIntegrityRecord(null);
     setXlsxBytes(null);
+    setValidationResult(null);
     setError(null);
   };
 
@@ -97,8 +115,8 @@ export const PDFToExcel: React.FC = () => {
             accept=".pdf"
             multiple={false}
             onFilesSelected={handleFilesSelected}
-            title="Choose a PDF file to extract into Excel"
-            subtitle="Select financial statements, invoices, or tabular PDF reports. 100% processed locally."
+            title="Choose a PDF file to extract to Excel"
+            subtitle="Drop your PDF table here or browse files. Processed 100% locally with zero server uploads."
           />
         )}
 
@@ -113,6 +131,7 @@ export const PDFToExcel: React.FC = () => {
                   <p className="font-semibold text-slate-900 truncate text-sm">{file.name}</p>
                   <p className="text-xs text-slate-500">
                     {(file.size / (1024 * 1024)).toFixed(2)} MB {pageCount ? `• ${pageCount} pages` : ''}
+                    {integrityRecord && ` • SHA-256: ${integrityRecord.shortHash}`}
                   </p>
                 </div>
               </div>
@@ -125,15 +144,15 @@ export const PDFToExcel: React.FC = () => {
               </button>
             </div>
 
-            {/* Table Extraction Transparency Notice & Limitations */}
+            {/* Table Extraction Architecture Notice */}
             <div className="p-4 bg-emerald-50/80 border border-emerald-200/60 rounded-2xl flex items-start gap-3">
               <Info className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm text-emerald-950 leading-relaxed space-y-1">
+              <div className="text-xs sm:text-sm text-emerald-900 leading-relaxed space-y-1">
                 <div>
-                  <span className="font-semibold">Supported Elements:</span> Regular grid tables, aligned financial statements, multi-page tabular reports, and numeric values mapped directly into Excel (<code className="font-mono bg-emerald-100 px-1 rounded">.xlsx</code>) columns.
+                  <span className="font-semibold">Column Boundary Projection:</span> Detects shared vertical alignment across rows to prevent column shifting. Automatically parses numbers, dates, and currency symbols into native spreadsheet cells.
                 </div>
                 <div>
-                  <span className="font-semibold">Conversion Limitations:</span> Borderless tables with irregular spacing or multi-line merged cells may align into adjacent cells or single rows. PDF vector chart drawings and graphic formulas are not converted to Excel chart objects.
+                  <span className="font-semibold">Conversion Limitations:</span> Multi-page scanned images without OCR text layer require vector or text-based PDF streams.
                 </div>
               </div>
             </div>
@@ -145,7 +164,7 @@ export const PDFToExcel: React.FC = () => {
               </div>
             )}
 
-            {isProcessing && <ProgressBar progress={progress} statusText="Extracting coordinate grids & creating Excel workbook..." />}
+            {isProcessing && <ProgressBar progress={progress} statusText="Projecting column boundaries & generating XLSX..." />}
 
             <button
               type="button"
@@ -154,43 +173,36 @@ export const PDFToExcel: React.FC = () => {
               className="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Sparkles className="w-5 h-5" />
-              <span>Convert to Excel (.xlsx)</span>
+              <span>Extract to Excel (.xlsx)</span>
             </button>
           </div>
         )}
 
-        {xlsxBytes && (
-          <div className="py-2">
-            <DownloadButton
-              onDownload={handleDownload}
-              onReset={handleReset}
-              buttonText="Download Excel Spreadsheet (.xlsx)"
-              filename={file ? `${file.name.replace(/\.pdf$/i, '')}-extracted.xlsx` : 'report.xlsx'}
-              subText="Successfully extracted tabular data into real Excel workbook."
-            />
-          </div>
+        {xlsxBytes && file && (
+          <ConversionValidationCard
+            validationResult={validationResult}
+            integrityRecord={integrityRecord}
+            originalFile={file}
+            outputFilename={`${file.name.replace(/\.pdf$/i, '')}-extracted.xlsx`}
+            onDownloadConverted={handleDownload}
+            onReset={handleReset}
+          />
         )}
       </div>
 
-      <AdPlaceholder />
-
-      {/* SEO & Educational Content */}
-      <div className="prose prose-slate max-w-none bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 mb-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">{tool.articleContent.heading}</h2>
-        {tool.articleContent.sections.map((section, idx) => (
-          <div key={idx} className="mb-6 last:mb-0">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">{section.subheading}</h3>
-            <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{section.content}</p>
-          </div>
-        ))}
-      </div>
-
-      <HowToSection toolName={tool.name} steps={tool.howToSteps} />
-      <FAQSection faqs={tool.faqs} toolName={tool.name} />
-      <RelatedTools currentToolId={tool.id} relatedIds={tool.relatedToolIds} />
-      <AdPlaceholder />
+      <HowToSection
+        steps={tool.howToSteps}
+        toolName={tool.name}
+        directAnswer={tool.directAnswer}
+      />
+      <FAQSection
+        faqs={tool.faqs}
+        toolName={tool.name}
+      />
+      <RelatedTools
+        currentToolId={tool.id}
+        relatedIds={tool.relatedToolIds}
+      />
     </div>
   );
 };
-
-export default PDFToExcel;

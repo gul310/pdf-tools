@@ -4,32 +4,45 @@ import { SEO } from '../../components/SEO';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { FileUploader } from '../../components/FileUploader';
 import { ProgressBar } from '../../components/ProgressBar';
-import { DownloadButton } from '../../components/DownloadButton';
 import { HowToSection } from '../../components/HowToSection';
 import { FAQSection } from '../../components/FAQSection';
 import { RelatedTools } from '../../components/RelatedTools';
 import { AdPlaceholder } from '../../components/AdPlaceholder';
+import { ConversionValidationCard } from '../../components/ConversionValidationCard';
 import { TOOLS_DATA } from '../../data/toolsData';
-import { pdfToPowerPoint, downloadPptx, getPDFInfo } from '../../utils/pdfUtils';
+import {
+  pdfToPowerPoint,
+  downloadPptx,
+  getPDFInfo,
+  createIntegrityRecord,
+  validatePptxOutput,
+  type FileIntegrityRecord,
+  type ValidationResult
+} from '../../utils/pdfUtils';
 
 export const PDFToPPT: React.FC = () => {
   const tool = TOOLS_DATA['pdf-to-ppt'];
   const [file, setFile] = useState<File | null>(null);
+  const [integrityRecord, setIntegrityRecord] = useState<FileIntegrityRecord | null>(null);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [mode, setMode] = useState<'slides' | 'editable'>('slides');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [pptxBlob, setPptxBlob] = useState<Blob | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
   const handleFilesSelected = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
     setError(null);
     setPptxBlob(null);
+    setValidationResult(null);
     const selected = newFiles[0];
     setFile(selected);
 
     try {
+      const record = await createIntegrityRecord(selected);
+      setIntegrityRecord(record);
       const info = await getPDFInfo(selected);
       setPageCount(info.pageCount);
     } catch {
@@ -49,7 +62,13 @@ export const PDFToPPT: React.FC = () => {
 
     try {
       const blob = await pdfToPowerPoint(file, mode, (p) => setProgress(p));
+      const validation = await validatePptxOutput(blob, {
+        sourcePageCount: pageCount || undefined,
+        mode
+      });
+
       setPptxBlob(blob);
+      setValidationResult(validation);
       setProgress(100);
     } catch (err: any) {
       console.error(err);
@@ -67,7 +86,9 @@ export const PDFToPPT: React.FC = () => {
 
   const handleReset = () => {
     setFile(null);
+    setIntegrityRecord(null);
     setPptxBlob(null);
+    setValidationResult(null);
     setError(null);
   };
 
@@ -99,7 +120,7 @@ export const PDFToPPT: React.FC = () => {
             multiple={false}
             onFilesSelected={handleFilesSelected}
             title="Choose a PDF file to convert to PowerPoint"
-            subtitle="Convert PDF slides, lectures, or decks into PowerPoint .pptx. 100% browser-side."
+            subtitle="Drop your PDF here or browse files. Processed 100% locally with zero server uploads."
           />
         )}
 
@@ -114,6 +135,7 @@ export const PDFToPPT: React.FC = () => {
                   <p className="font-semibold text-slate-900 truncate text-sm">{file.name}</p>
                   <p className="text-xs text-slate-500">
                     {(file.size / (1024 * 1024)).toFixed(2)} MB {pageCount ? `• ${pageCount} pages` : ''}
+                    {integrityRecord && ` • SHA-256: ${integrityRecord.shortHash}`}
                   </p>
                 </div>
               </div>
@@ -126,58 +148,71 @@ export const PDFToPPT: React.FC = () => {
               </button>
             </div>
 
-            {/* Conversion Mode Selector */}
+            {/* Mode Selector */}
             <div className="space-y-3">
-              <label className="block text-sm font-bold text-slate-800">
-                Select PowerPoint Output Mode
+              <label className="block text-sm font-bold text-slate-900">
+                Choose Slide Generation Mode:
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setMode('slides')}
-                  className={`p-4 rounded-2xl border-2 text-left transition ${
+                  className={`p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
                     mode === 'slides'
-                      ? 'border-orange-500 bg-orange-50/60 shadow-sm'
+                      ? 'border-orange-600 bg-orange-50/50 ring-2 ring-orange-600/20'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-1.5 font-bold text-sm text-slate-900">
-                    <Image className="w-4 h-4 text-orange-600" />
-                    <span>High-Fidelity Presentation Slides</span>
+                  <div
+                    className={`p-2 rounded-xl shrink-0 ${
+                      mode === 'slides' ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    <Image className="w-5 h-5" />
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Recommended for slide presentations. Renders each PDF page at high resolution as a slide background, ensuring 100% visual fidelity for diagrams, fonts, and geometry.
-                  </p>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">Mode B: Exact Visual Presentation</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Renders exact page graphics, charts, and fonts as high-res slide backgrounds. Recommended for presentations.
+                    </p>
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setMode('editable')}
-                  className={`p-4 rounded-2xl border-2 text-left transition ${
+                  className={`p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
                     mode === 'editable'
-                      ? 'border-orange-500 bg-orange-50/60 shadow-sm'
+                      ? 'border-orange-600 bg-orange-50/50 ring-2 ring-orange-600/20'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-1.5 font-bold text-sm text-slate-900">
-                    <Type className="w-4 h-4 text-orange-600" />
-                    <span>Editable Text Blocks</span>
+                  <div
+                    className={`p-2 rounded-xl shrink-0 ${
+                      mode === 'editable' ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    <Type className="w-5 h-5" />
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Extracts digital text from each page into movable, editable PowerPoint text boxes positioned on standard 16:9 widescreen slides.
-                  </p>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">Mode A: Editable Text Boxes</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Extracts paragraphs and headings into editable PowerPoint text containers.
+                    </p>
+                  </div>
                 </button>
               </div>
             </div>
 
-            <div className="p-4 bg-orange-50/70 border border-orange-200/60 rounded-2xl flex items-start gap-3">
+            {/* Fidelity Notice */}
+            <div className="p-4 bg-orange-50/80 border border-orange-200/60 rounded-2xl flex items-start gap-3">
               <Info className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm text-orange-950 leading-relaxed space-y-1">
+              <div className="text-xs sm:text-sm text-orange-900 leading-relaxed space-y-1">
                 <div>
-                  <span className="font-semibold">Mode Capabilities:</span> High-Fidelity mode renders the complete page geometry, diagrams, images, and fonts as crisp slide backgrounds. Editable Text mode extracts text runs into movable PowerPoint text boxes.
+                  <span className="font-semibold">Aspect Ratio Matching:</span> Automatically configures 16:9 widescreen, 4:3 standard, or portrait slide dimensions based on your source PDF proportions.
                 </div>
                 <div>
-                  <span className="font-semibold">Conversion Limitations:</span> In Editable Text mode, embedded vector illustrations and background charts are not converted into native editable PowerPoint shapes. For 100% diagram and visual fidelity, select High-Fidelity Presentation Slides.
+                  <span className="font-semibold">Conversion Limitations:</span> Complex 3D animations and audio tracks in the source document are not supported.
                 </div>
               </div>
             </div>
@@ -189,7 +224,7 @@ export const PDFToPPT: React.FC = () => {
               </div>
             )}
 
-            {isProcessing && <ProgressBar progress={progress} statusText="Building 16:9 slides & compiling presentation..." />}
+            {isProcessing && <ProgressBar progress={progress} statusText="Generating PowerPoint presentation slides..." />}
 
             <button
               type="button"
@@ -203,38 +238,31 @@ export const PDFToPPT: React.FC = () => {
           </div>
         )}
 
-        {pptxBlob && (
-          <div className="py-2">
-            <DownloadButton
-              onDownload={handleDownload}
-              onReset={handleReset}
-              buttonText="Download PowerPoint Presentation (.pptx)"
-              filename={file ? `${file.name.replace(/\.pdf$/i, '')}-slides.pptx` : 'presentation.pptx'}
-              subText="Successfully generated 16:9 widescreen presentation deck."
-            />
-          </div>
+        {pptxBlob && file && (
+          <ConversionValidationCard
+            validationResult={validationResult}
+            integrityRecord={integrityRecord}
+            originalFile={file}
+            outputFilename={`${file.name.replace(/\.pdf$/i, '')}-slides.pptx`}
+            onDownloadConverted={handleDownload}
+            onReset={handleReset}
+          />
         )}
       </div>
 
-      <AdPlaceholder />
-
-      {/* SEO & Educational Content */}
-      <div className="prose prose-slate max-w-none bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 mb-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">{tool.articleContent.heading}</h2>
-        {tool.articleContent.sections.map((section, idx) => (
-          <div key={idx} className="mb-6 last:mb-0">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">{section.subheading}</h3>
-            <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{section.content}</p>
-          </div>
-        ))}
-      </div>
-
-      <HowToSection toolName={tool.name} steps={tool.howToSteps} />
-      <FAQSection faqs={tool.faqs} toolName={tool.name} />
-      <RelatedTools currentToolId={tool.id} relatedIds={tool.relatedToolIds} />
-      <AdPlaceholder />
+      <HowToSection
+        steps={tool.howToSteps}
+        toolName={tool.name}
+        directAnswer={tool.directAnswer}
+      />
+      <FAQSection
+        faqs={tool.faqs}
+        toolName={tool.name}
+      />
+      <RelatedTools
+        currentToolId={tool.id}
+        relatedIds={tool.relatedToolIds}
+      />
     </div>
   );
 };
-
-export default PDFToPPT;

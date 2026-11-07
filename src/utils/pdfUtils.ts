@@ -743,5 +743,7 @@ export async function addWatermarkPDF(
   return await pdfDoc.save();
 }
 
-// Re-export extended PDF tools utilities
+// Re-export extended PDF tools utilities, file integrity, and conversion validation
 export * from './extendedPdfUtils';
+export * from './fileIntegrity';
+export * from './conversionValidator';
