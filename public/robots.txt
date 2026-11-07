@@ -1,0 +1,6 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Hostinger / Production Sitemap Location
+Sitemap: https://pdftools-pro.com/sitemap.xml
