@@ -1,2 +1,8 @@
+# Legacy and Alias 301 Permanent Redirects
+/delete-pages        /delete-pdf-pages   301
+/add-watermark       /add-watermark-pdf  301
+/page-numbers        /add-page-numbers   301
+/terms-of-service    /terms              301
+
 # Cloudflare Pages Single Page Application (SPA) Routing Rule
 /*    /index.html   200

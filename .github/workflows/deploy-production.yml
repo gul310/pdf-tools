@@ -1,0 +1,462 @@
+name: Production Release & Hostinger Deployment Gate
+
+# ==============================================================================
+# PRODUCTION APPROVAL GATE & ROLLBACK ARCHITECTURE:
+#
+# 1. GUARDS & TRIGGERS:
+#    - This workflow NEVER deploys automatically on push, PR, or published release.
+#    - Production deployment is strictly restricted to workflow runs initiated from
+#      'refs/heads/main'. Non-main branches or tags are rejected immediately.
+#    - Hostinger deployment requires MANUAL workflow_dispatch with strict confirmation:
+#        * action == 'DEPLOY' requires confirm_deployment == 'DEPLOY'
+#        * action == 'ROLLBACK' requires confirm_deployment == 'ROLLBACK'
+#        * Any mismatch immediately halts execution before deployment.
+#
+# 2. SHELL INJECTION PREVENTION:
+#    - User inputs (action, rollback_target, confirm_deployment) are NEVER directly
+#      interpolated into shell scripts via ${{ ... }}.
+#    - All inputs are bound to step-level 'env:' variables and accessed via quoted
+#      Bash variables with strict regex format validation.
+#
+# 3. GITHUB ENVIRONMENT PROTECTION & MINIMAL PRIVILEGE:
+#    - Uses 'environment: production-hostinger'.
+#    - Repository permissions are restricted to 'contents: read' and 'deployments: write'.
+#      Write access to repository contents is revoked.
+#    - The repository owner MUST configure 'Required reviewers' for
+#      'production-hostinger' in GitHub Repo Settings -> Environments.
+#
+# 4. HISTORICAL COMMIT ROLLBACK (INDEPENDENT OF 7-DAY ARTIFACT RETENTION):
+#    - Rollback capability does NOT rely on workflow build artifacts, which have
+#      a standard 7-day temporary retention limit.
+#    - Instead, rollback rebuilds on demand from a verified historical commit or tag
+#      that is strictly confirmed to be an ancestor of freshly fetched 'refs/remotes/origin/main'.
+#    - The workflow validates target syntax, performs an explicit strict fetch of origin main
+#      (+refs/heads/main:refs/remotes/origin/main with --no-tags and zero fallback),
+#      verifies reference resolution via --end-of-options, and asserts 'git merge-base --is-ancestor'.
+#    - Targets outside main's lineage (e.g. unmerged feature branches) are rejected.
+#    - The selected commit is checked out, re-compiled with Node 22 LTS, and re-tested.
+#    - 'dangerous-clean-slate: false' and strict exclusions guarantee that
+#      server files (.well-known, mail, cgi-bin, php.ini, .env*) are never deleted.
+#    - Rollback verification note: Automated rollback simulation has been verified
+#      locally (test-rollback-simulation.mjs). Live Hostinger FTPS rollback has not
+#      been executed against production servers pending owner authorization.
+#
+# 5. CLOUDFLARE PAGES INDEPENDENCE:
+#    - Cloudflare Pages (https://pdf-tools-c85.pages.dev/) remains the active,
+#      permanent staging & preview environment with X-Robots-Tag: noindex.
+#    - Hostinger exclusively serves production (https://pdftools-pro.com/).
+# ==============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Deployment Action (DEPLOY or ROLLBACK)'
+        required: true
+        default: 'DEPLOY'
+        type: choice
+        options:
+          - DEPLOY
+          - ROLLBACK
+      rollback_target:
+        description: 'Target Commit SHA (40-hex) or Release Tag (Required if action is ROLLBACK)'
+        required: false
+        default: ''
+      confirm_deployment:
+        description: 'Type "DEPLOY" to confirm release or "ROLLBACK" to confirm rollback'
+        required: true
+        default: 'REVIEW_ONLY'
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  # Stage 1: Quality Gate & Automated Build / Verification
+  validate-and-test:
+    name: Build & Security Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Inputs & Authorization Gate
+        env:
+          ACTION: ${{ github.event.inputs.action }}
+          CONFIRM_DEPLOYMENT: ${{ github.event.inputs.confirm_deployment }}
+          WORKFLOW_REF: ${{ github.ref }}
+        run: |
+          set -eo pipefail
+          echo "=========================================================="
+          echo "EVALUATING DEPLOYMENT AUTHORIZATION GATE"
+          echo "Workflow Ref:         $WORKFLOW_REF"
+          echo "Action Requested:     $ACTION"
+          echo "Confirmation Value:   $CONFIRM_DEPLOYMENT"
+          echo "=========================================================="
+
+          # 1. Enforce that deployment workflow must only be initiated from main
+          if [ "$WORKFLOW_REF" != "refs/heads/main" ]; then
+            echo "::error:: Production workflow must only be initiated from 'refs/heads/main'. Current ref: '$WORKFLOW_REF'."
+            exit 1
+          fi
+          echo "Workflow Ref Authorization: Verified (refs/heads/main)."
+
+          # 2. Enforce strict confirmation matching
+          if [ "$ACTION" = "DEPLOY" ]; then
+            if [ "$CONFIRM_DEPLOYMENT" != "DEPLOY" ]; then
+              echo "::error:: Authorization Failed: Action DEPLOY requires confirm_deployment to be exactly 'DEPLOY'. Received '$CONFIRM_DEPLOYMENT'."
+              exit 1
+            fi
+            echo "Authorization Gate Passed: DEPLOY confirmed."
+          elif [ "$ACTION" = "ROLLBACK" ]; then
+            if [ "$CONFIRM_DEPLOYMENT" != "ROLLBACK" ]; then
+              echo "::error:: Authorization Failed: Action ROLLBACK requires confirm_deployment to be exactly 'ROLLBACK'. Received '$CONFIRM_DEPLOYMENT'."
+              exit 1
+            fi
+            echo "Authorization Gate Passed: ROLLBACK confirmed."
+          else
+            echo "::error:: Invalid Action: '$ACTION'. Must be DEPLOY or ROLLBACK."
+            exit 1
+          fi
+
+      - name: Checkout Repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # Full git history to verify commit lineage
+
+      - name: Verify Rollback Target & Switch Ref
+        env:
+          ACTION: ${{ github.event.inputs.action }}
+          ROLLBACK_TARGET: ${{ github.event.inputs.rollback_target }}
+        run: |
+          set -eo pipefail
+          TARGET="$ROLLBACK_TARGET"
+
+          if [ "$ACTION" = "ROLLBACK" ]; then
+            if [ -z "$TARGET" ]; then
+              echo "::error:: Rollback target cannot be empty when action is ROLLBACK."
+              exit 1
+            fi
+
+            # Prevent command option injection or shell metacharacters
+            case "$TARGET" in
+              -*|*[[:space:]]*|*[\;\|\&\`\$\<\>\(\)\{\}\[\]\*\?\\\!]*)
+                echo "::error:: Rollback target contains invalid characters or leading dashes."
+                exit 1
+                ;;
+            esac
+
+            echo "Validating rollback target format: $TARGET"
+            IS_VALID_SHA=false
+            IS_VALID_TAG=false
+
+            # Validate full 40-character hex SHA
+            if echo "$TARGET" | grep -Eq '^[0-9a-fA-F]{40}$'; then
+              IS_VALID_SHA=true
+            fi
+
+            # Validate existing git tag via revision parsing
+            if git rev-parse --verify --quiet --end-of-options "refs/tags/$TARGET" >/dev/null 2>&1; then
+              IS_VALID_TAG=true
+            fi
+
+            if [ "$IS_VALID_SHA" = false ] && [ "$IS_VALID_TAG" = false ]; then
+              echo "::error:: Invalid rollback target format '$TARGET'. Must be a 40-character commit SHA or an existing release tag."
+              exit 1
+            fi
+
+            # Explicitly fetch latest main branch from origin with zero fallback
+            echo "Fetching latest main branch from origin..."
+            git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main --quiet
+
+            # Verify the fetched commit reference resolves successfully
+            MAIN_REF=$(git rev-parse --verify --end-of-options "refs/remotes/origin/main" 2>/dev/null)
+            if [ -z "$MAIN_REF" ]; then
+              echo "::error:: Failed to resolve refs/remotes/origin/main reference after fetch."
+              exit 1
+            fi
+
+            # Resolve commit SHA using strict end-of-options parsing
+            RESOLVED_COMMIT=$(git rev-parse --verify --end-of-options "${TARGET}^{commit}" 2>/dev/null || true)
+            if [ -z "$RESOLVED_COMMIT" ]; then
+              echo "::error:: Rollback target '$TARGET' could not be resolved to a commit in this repository."
+              exit 1
+            fi
+
+            # Strict Ancestry Verification: Target must be an ancestor of freshly fetched refs/remotes/origin/main
+            echo "Verifying ancestry: commit $RESOLVED_COMMIT must be an ancestor of refs/remotes/origin/main ($MAIN_REF)..."
+            if ! git merge-base --is-ancestor "$RESOLVED_COMMIT" refs/remotes/origin/main; then
+              echo "::error:: Rollback target commit '$RESOLVED_COMMIT' is NOT an ancestor of refs/remotes/origin/main. Unmerged branches and external commits are rejected."
+              exit 1
+            fi
+            echo "Ancestry Verified: $RESOLVED_COMMIT is confirmed as an ancestor of refs/remotes/origin/main."
+
+            echo "Rollback target successfully verified."
+            echo "Target: $TARGET"
+            echo "Resolved Commit: $RESOLVED_COMMIT"
+            echo "Checking out verified commit for testing and build..."
+            git checkout "$RESOLVED_COMMIT"
+            echo "Active HEAD is now: $(git log -1 --oneline)"
+          else
+            echo "Action is DEPLOY. Proceeding with active branch HEAD: $(git log -1 --oneline)"
+          fi
+
+      # Vite 8 strictly requires Node.js ^20.19.0 || >=22.12.0. Node 22 LTS satisfies this.
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@60edb5dd545a775178f5252478337951c3261e44 # v4.0.2
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Exact Dependencies
+        run: npm ci
+
+      - name: Static Code Analysis & Linting
+        run: npm run lint
+
+      - name: TypeScript Compilation & Production Build
+        run: npm run build
+
+      - name: Automated Unit & QA Integration Tests
+        run: npm test
+
+      - name: Verify Distribution Integrity
+        run: |
+          test -f dist/index.html || exit 1
+          test -f dist/.htaccess || exit 1
+          test -f dist/pdf.worker.mjs || exit 1
+          test -f dist/robots.txt || exit 1
+          test -f dist/sitemap.xml || exit 1
+          test -f dist/wasm/qpdf.wasm || exit 1
+          echo "Build artifact verified for production deployment."
+
+      - name: Package Release Archive (Deployable Bundle)
+        run: |
+          cd dist && zip -r ../pdf-tools-release.zip . && cd ..
+          echo "Created deployable release package archive."
+
+      - name: Upload Build Artifact for Job Hand-off (7-day retention)
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: hostinger-public-html
+          path: dist/
+          retention-days: 7
+
+      - name: Record Build Stage Status
+        run: |
+          echo "### :white_check_mark: Phase 1: Build & Quality Gate Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **TypeScript Compilation & Production Bundle:** Verified (\`dist/\` integrity checked)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Static Code Analysis (ESLint/Oxlint):** Passed (0 errors)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Automated Test Suites (Vitest):** 100% Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Archive:** \`pdf-tools-release.zip\` generated" >> $GITHUB_STEP_SUMMARY
+          echo "- **Job Artifact:** \`hostinger-public-html\` uploaded (7-day temporary retention for deployment job hand-off)" >> $GITHUB_STEP_SUMMARY
+
+  # Stage 2: Hostinger Deployment & Strict Smoke Test (Guarded by Environment Review)
+  deploy-hostinger:
+    name: Deploy to Hostinger Business Hosting
+    needs: validate-and-test
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      ((github.event.inputs.action == 'DEPLOY' && github.event.inputs.confirm_deployment == 'DEPLOY') ||
+       (github.event.inputs.action == 'ROLLBACK' && github.event.inputs.confirm_deployment == 'ROLLBACK'))
+    runs-on: ubuntu-latest
+    environment:
+      name: production-hostinger
+      url: https://pdftools-pro.com/
+    steps:
+      - name: Download Verified Build Artifact
+        uses: actions/download-artifact@c850b08b16a805eb263aa150a21a340cf5dd5649 # v4.1.4
+        with:
+          name: hostinger-public-html
+          path: dist/
+
+      - name: Deploy to Hostinger public_html via Secure FTPS
+        uses: SamKirkland/FTP-Deploy-Action@a065818985fb4a4f895525ce05436329bf337841 # v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          port: ${{ secrets.HOSTINGER_FTP_PORT || 21 }}
+          protocol: ftps
+          security: strict
+          local-dir: ./dist/
+          server-dir: ./public_html/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.well-known/**
+            **/cgi-bin/**
+            **/etc/**
+            **/mail/**
+            **/.mail/**
+            **/php.ini
+            **/.env*
+
+      - name: Confirm FTPS Transfer Success
+        run: |
+          echo "=========================================================="
+          echo "PHASE 2: FTPS TRANSFER PASSED SUCCESSFULLY"
+          echo "All application files synchronized to public_html/."
+          echo "Protected hosting files (.well-known, mail, etc.) untouched."
+          echo "=========================================================="
+
+      - name: Strict Post-Deployment Smoke Test
+        run: |
+          set -eo pipefail
+          echo "=========================================================="
+          echo "EXECUTING STRICT POST-DEPLOYMENT HEALTH & INTEGRITY CHECKS"
+          echo "=========================================================="
+          BASE_URL="https://pdftools-pro.com"
+
+          # 1. Homepage & SSL Certificate Validation (Strict SSL, no -k)
+          echo "Checking: $BASE_URL/ (Homepage HTML & SSL Certificate)..."
+          HOME_HTML=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "$BASE_URL/")
+          if ! echo "$HOME_HTML" | grep -q 'id="root"'; then
+            echo "::error:: Homepage did not return expected application root element."
+            exit 1
+          fi
+          if ! echo "$HOME_HTML" | grep -q 'PDF Tools'; then
+            echo "::error:: Homepage did not return expected title or branding."
+            exit 1
+          fi
+          echo "  -> PASS: Homepage valid, SSL verified, app root verified."
+
+          # 2. Representative Tool Routes & Dedicated Tool Chunks
+          # Prevents mistaking an HTTP 200 HTML fallback rewrite for a functioning tool
+          TOOL_SPECS=(
+            "merge-pdf:MergePDF"
+            "split-pdf:SplitPDF"
+            "compress-pdf:CompressPDF"
+            "pdf-to-word:PDFToWord"
+            "word-to-pdf:WordToPDF"
+            "pdf-to-excel:PDFToExcel"
+            "excel-to-pdf:ExcelToPDF"
+            "pdf-to-ppt:PDFToPPT"
+            "ppt-to-pdf:PPTToPDF"
+          )
+
+          for spec in "${TOOL_SPECS[@]}"; do
+            route="${spec%%:*}"
+            chunk_prefix="${spec##*:}"
+
+            echo "Checking Tool Route: $BASE_URL/$route..."
+            HTML=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "$BASE_URL/$route")
+            if ! echo "$HTML" | grep -q 'id="root"'; then
+              echo "::error:: Route /$route failed to return valid application shell."
+              exit 1
+            fi
+
+            # Locate and probe actual compiled JavaScript chunk for this tool
+            CHUNK_FILE=$(find dist/assets -name "${chunk_prefix}-*.js" | head -n 1)
+            if [ -z "$CHUNK_FILE" ]; then
+              echo "::error:: Missing expected JS chunk for tool '${chunk_prefix}' in dist/assets/. Build did not produce required code chunk!"
+              exit 1
+            fi
+
+            CHUNK_NAME=$(basename "$CHUNK_FILE")
+            echo "Probing Tool Asset: $BASE_URL/assets/$CHUNK_NAME..."
+            CHUNK_HEADERS=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 -I "$BASE_URL/assets/$CHUNK_NAME")
+            if echo "$CHUNK_HEADERS" | grep -iq 'content-type:.*text/html'; then
+              echo "::error:: Asset /assets/$CHUNK_NAME returned HTML fallback instead of real JavaScript!"
+              exit 1
+            fi
+            if ! echo "$CHUNK_HEADERS" | grep -iq 'content-type:.*javascript'; then
+              echo "::error:: Asset /assets/$CHUNK_NAME missing javascript Content-Type. Headers: $CHUNK_HEADERS"
+              exit 1
+            fi
+            echo "  -> PASS: /$route and /assets/$CHUNK_NAME verified as genuine operational code."
+          done
+
+          # 3. PDF.js Worker Asset & Content-Type
+          echo "Checking: $BASE_URL/pdf.worker.mjs..."
+          WORKER_HEADERS=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 -I "$BASE_URL/pdf.worker.mjs")
+          if ! echo "$WORKER_HEADERS" | grep -iq 'content-type:.*javascript'; then
+            echo "::error:: /pdf.worker.mjs Content-Type is invalid: $WORKER_HEADERS"
+            exit 1
+          fi
+          echo "  -> PASS: /pdf.worker.mjs verified (HTTP 200, javascript Content-Type)."
+
+          # 4. QPDF WASM Binary Asset & Content-Type
+          echo "Checking: $BASE_URL/wasm/qpdf.wasm..."
+          WASM_HEADERS=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 20 -I "$BASE_URL/wasm/qpdf.wasm")
+          if ! echo "$WASM_HEADERS" | grep -iq 'content-type:.*wasm'; then
+            echo "::error:: /wasm/qpdf.wasm Content-Type is invalid: $WASM_HEADERS"
+            exit 1
+          fi
+          echo "  -> PASS: /wasm/qpdf.wasm verified (HTTP 200, wasm Content-Type)."
+
+          # 5. robots.txt Verification
+          echo "Checking: $BASE_URL/robots.txt..."
+          ROBOTS_TXT=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "$BASE_URL/robots.txt")
+          if ! echo "$ROBOTS_TXT" | grep -q 'Sitemap: https://pdftools-pro.com/sitemap.xml'; then
+            echo "::error:: /robots.txt does not reference production sitemap."
+            exit 1
+          fi
+          echo "  -> PASS: /robots.txt verified."
+
+          # 6. sitemap.xml Verification
+          echo "Checking: $BASE_URL/sitemap.xml..."
+          SITEMAP_XML=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "$BASE_URL/sitemap.xml")
+          if ! echo "$SITEMAP_XML" | grep -q '<urlset'; then
+            echo "::error:: /sitemap.xml does not contain valid XML urlset."
+            exit 1
+          fi
+          if ! echo "$SITEMAP_XML" | grep -q 'https://pdftools-pro.com/merge-pdf'; then
+            echo "::error:: /sitemap.xml missing canonical tool entries."
+            exit 1
+          fi
+          echo "  -> PASS: /sitemap.xml verified."
+
+          echo "=========================================================="
+          echo "ALL CRITICAL ENDPOINTS & ASSETS PASSED STRICT SMOKE TESTS"
+          echo "=========================================================="
+
+      - name: Confirm Smoke Test Success
+        run: |
+          echo "=========================================================="
+          echo "PHASE 3: LIVE SMOKE TESTS PASSED SUCCESSFULLY"
+          echo "14 critical endpoints, SSL, and MIME types 100% verified."
+          echo "=========================================================="
+
+      - name: Report Deployment Status
+        if: success()
+        env:
+          ACTION_TYPE: ${{ github.event.inputs.action }}
+          ROLLBACK_TARGET: ${{ github.event.inputs.rollback_target }}
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          set -eo pipefail
+          TARGET_REF="$WORKFLOW_SHA"
+          if [ "$ACTION_TYPE" = "ROLLBACK" ] && [ -n "$ROLLBACK_TARGET" ]; then
+            TARGET_REF="$ROLLBACK_TARGET"
+          fi
+
+          echo "### :rocket: Phase 4: Complete Production Deployment Passed" >> $GITHUB_STEP_SUMMARY
+          echo "Hostinger Business Hosting updated and verified via strict smoke tests." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Phase | Status | Verification Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **1. Build & Quality Gate** | :white_check_mark: PASSED | Node 22 LTS, ESLint, TypeScript, Vitest Suites, Distribution Integrity |" >> $GITHUB_STEP_SUMMARY
+          echo "| **2. FTPS Transfer** | :white_check_mark: PASSED | Synchronized to \`public_html/\` with protected server exclusions |" >> $GITHUB_STEP_SUMMARY
+          echo "| **3. Live Smoke Tests** | :white_check_mark: PASSED | 14 critical endpoints, SSL certificates, WASM/Worker MIME types verified |" >> $GITHUB_STEP_SUMMARY
+          echo "| **4. Complete Production Deployment** | :white_check_mark: PASSED | Production release verified live on Hostinger |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action Executed:** \`${ACTION_TYPE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Reference:** \`${TARGET_REF}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Authorization Ref:** \`refs/heads/main\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Directory:** \`public_html/\` (Hostinger Business Hosting)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Protected Files Preserved:** \`.well-known/**\`, \`mail/**\`, \`cgi-bin/**\`, \`php.ini\`, \`.env*\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cloudflare Pages:** Unaffected & active independently at https://pdf-tools-c85.pages.dev/" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rollback Strategy:** Dynamic commit rebuild from \`origin/main\` lineage (independent of 7-day build artifact expiration)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rollback Verification Note:** Automated rollback simulation verified locally; live Hostinger FTPS rollback ready on-demand." >> $GITHUB_STEP_SUMMARY
+
+      - name: Report Partial Deployment Alert
+        if: failure()
+        run: |
+          echo "### :x: PRODUCTION DEPLOYMENT FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "The Hostinger deployment or post-deployment smoke test failed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Status:** PASSED (completed in previous job)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failure Point:** FTPS transfer error, SSL error, endpoint HTTP failure, or MIME mismatch." >> $GITHUB_STEP_SUMMARY
+          echo "- **Production Impact:** If DNS is not yet pointed to Hostinger, smoke tests fail by design to prevent false success claims." >> $GITHUB_STEP_SUMMARY
+          echo "- **Staging Status:** Cloudflare Pages remains active and unaffected at https://pdf-tools-c85.pages.dev/." >> $GITHUB_STEP_SUMMARY

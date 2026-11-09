@@ -11,9 +11,11 @@
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Redirect legacy paths
+  # Redirect legacy and alias paths (301 Permanent)
   RewriteRule ^delete-pages/?$ /delete-pdf-pages [R=301,L]
   RewriteRule ^add-watermark/?$ /add-watermark-pdf [R=301,L]
+  RewriteRule ^page-numbers/?$ /add-page-numbers [R=301,L]
+  RewriteRule ^terms-of-service/?$ /terms [R=301,L]
 
   # Route all other URLs to index.html for Single Page Application
   RewriteRule ^ index.html [L]

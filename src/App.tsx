@@ -86,9 +86,11 @@ export function App() {
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/blog" element={<Blog />} />
 
-                {/* Backwards Compatibility Redirects */}
+                {/* Backwards Compatibility Permanent Redirects */}
                 <Route path="/delete-pages" element={<Navigate to="/delete-pdf-pages" replace />} />
                 <Route path="/add-watermark" element={<Navigate to="/add-watermark-pdf" replace />} />
+                <Route path="/page-numbers" element={<Navigate to="/add-page-numbers" replace />} />
+                <Route path="/terms-of-service" element={<Navigate to="/terms" replace />} />
 
                 {/* 404 Catch-All */}
                 <Route path="*" element={<NotFound />} />
