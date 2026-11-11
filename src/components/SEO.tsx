@@ -30,7 +30,7 @@ export const SEO: React.FC<SEOProps> = ({
     url: `${SITE_CONFIG.domain}/`,
     logo: {
       '@type': 'ImageObject',
-      url: `${SITE_CONFIG.domain}/favicon.svg`
+      url: `${SITE_CONFIG.domain}/logo.svg`
     },
     description: SITE_CONFIG.description,
     contactPoint: [
@@ -40,9 +40,6 @@ export const SEO: React.FC<SEOProps> = ({
         email: SITE_CONFIG.contactEmail,
         url: `${SITE_CONFIG.domain}/contact`
       }
-    ],
-    sameAs: [
-      SITE_CONFIG.githubUrl
     ]
   };
 
@@ -89,6 +86,17 @@ export const SEO: React.FC<SEOProps> = ({
     url: canonicalUrl,
     provider: {
       '@id': `${SITE_CONFIG.domain}/#organization`
+    }
+  };
+
+  // Schema: SoftwareSourceCode
+  const sourceCodeSchema = {
+    '@type': 'SoftwareSourceCode',
+    '@id': `${SITE_CONFIG.domain}/#sourcecode`,
+    name: `${SITE_CONFIG.name} Source Code`,
+    codeRepository: SITE_CONFIG.githubUrl,
+    targetProduct: {
+      '@id': `${canonicalUrl}#software`
     }
   };
 
@@ -142,7 +150,8 @@ export const SEO: React.FC<SEOProps> = ({
     organizationSchema,
     webSiteSchema,
     webPageSchema,
-    softwareAppSchema
+    softwareAppSchema,
+    sourceCodeSchema
   ];
 
   if (faqSchema) graphEntities.push(faqSchema);

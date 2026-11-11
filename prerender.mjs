@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { generateSitemap } from './generate_sitemap.mjs';
 
 const ROUTES = [
   '/',
@@ -141,7 +142,20 @@ async function main() {
     renderedCount++;
   }
 
-  // 5. Clean up temporary SSR bundle
+  // 5. Generate & Synchronize Sitemap from Git History
+  const sitemapXml = generateSitemap();
+  fs.writeFileSync(path.resolve('dist/sitemap.xml'), sitemapXml, 'utf8');
+  if (process.env.SYNC_PUBLIC_SITEMAP === 'true') {
+    fs.writeFileSync(path.resolve('public/sitemap.xml'), sitemapXml, 'utf8');
+    console.log('  ✓ Synchronized public/sitemap.xml with Git history');
+  }
+  const urlCount = (sitemapXml.match(/<url>/g) || []).length;
+  if (urlCount !== 26) {
+    throw new Error(`Sitemap integrity failure: expected 26 canonical URLs, found ${urlCount}`);
+  }
+  console.log(`\n  ✓ Sitemap dynamically generated from Git history into dist/sitemap.xml (${urlCount} URLs)`);
+
+  // 6. Clean up temporary SSR bundle
   fs.rmSync(path.resolve('dist-ssr'), { recursive: true, force: true });
   console.log(`\nPrerender Complete: Successfully generated ${renderedCount} static HTML pages.`);
 }

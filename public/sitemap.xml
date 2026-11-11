@@ -1,165 +1,158 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Homepage -->
   <url>
     <loc>https://pdf1998.com/</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
-
-  <!-- 10 Core PDF Tools -->
   <url>
     <loc>https://pdf1998.com/merge-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/split-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/compress-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/protect-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/unlock-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/rotate-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/delete-pdf-pages</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/pdf-to-image</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/image-to-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/add-watermark-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- 10 Extended PDF Tools -->
   <url>
     <loc>https://pdf1998.com/pdf-to-word</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/word-to-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/pdf-to-excel</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/excel-to-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/pdf-to-ppt</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/ppt-to-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/sign-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/edit-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/add-page-numbers</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/crop-pdf</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Content & Compliance Pages -->
   <url>
     <loc>https://pdf1998.com/blog</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/about</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/contact</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/privacy-policy</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://pdf1998.com/terms</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

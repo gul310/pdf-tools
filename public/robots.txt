@@ -1,28 +1,74 @@
 # https://www.robotstxt.org/robotstxt.html
-# Content Signals Policy Directive
+# Additional Machine-Readable Content Signals Policy (Non-RFC 9309 Extension)
 Content-Signal: ai-train=no, ai-input=yes, search=yes
 
-# Explicit Allowances for Verified AI Agents & Search Crawlers
+# ==============================================================================
+# 1. AI MODEL TRAINING CRAWLERS (Strictly Disallowed per ai-train=no)
+# ==============================================================================
+
+# OpenAI Model Training
 User-agent: GPTBot
-Allow: /
+Disallow: /
 
+# Google Gemini & Vertex AI Generative Training & Grounding (Robots.txt product token; HTTP crawler is Googlebot)
+User-agent: Google-Extended
+Disallow: /
+
+# Apple Intelligence Foundation Model Training (Does not affect Applebot Search)
+User-agent: Applebot-Extended
+Disallow: /
+
+# Anthropic Claude Foundation Model Training
 User-agent: ClaudeBot
+Disallow: /
+
+# Amazon Web Crawler (Data may be used for Alexa services and AI model training)
+User-agent: Amazonbot
+Disallow: /
+
+# ==============================================================================
+# 2. AI SEARCH DISCOVERY & RETRIEVAL (Allowed per search=yes)
+# ==============================================================================
+
+# OpenAI Search Discovery (ChatGPT Search Indexing)
+User-agent: OAI-SearchBot
 Allow: /
 
+# Anthropic Search Discovery
+User-agent: Claude-SearchBot
+Allow: /
+
+# Amazon Search Discovery
+User-agent: Amzn-SearchBot
+Allow: /
+
+# Perplexity AI Conversational Search Indexing & Citation Retrieval
 User-agent: PerplexityBot
 Allow: /
 
-User-agent: Applebot-Extended
+# ==============================================================================
+# 3. USER-INITIATED AGENT BROWSING & LINK PREVIEWS (Allowed per ai-input=yes)
+# ==============================================================================
+
+# OpenAI User-Initiated Real-time Agent Browsing
+User-agent: ChatGPT-User
 Allow: /
 
-User-agent: Google-Extended
+# Anthropic Claude User-Initiated Web Browsing
+User-agent: Claude-User
 Allow: /
 
-User-agent: Amazonbot
+# Amazon User-Initiated Requests (Note: may not honor all robots.txt rules for real-time actions)
+User-agent: Amzn-User
 Allow: /
 
+# Social Sharing & Link Preview Snippets
 User-agent: facebookexternalhit
 Allow: /
+
+# ==============================================================================
+# 4. GENERAL WEB SEARCH ENGINES & INDEXING
+# ==============================================================================
 
 User-agent: *
 Allow: /

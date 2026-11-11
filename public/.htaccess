@@ -4,9 +4,26 @@
 
 ErrorDocument 404 /404.html
 
+# Protect sensitive files, hidden dotfiles (except .well-known), and backup archives
+<FilesMatch "(^\.(?!well-known)|(\.(bak|config|sql|ini|log|sh|env|tar\.gz|tgz)$))">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Security 1: Block hidden files and directories (starting with a dot) except .well-known
+  RewriteRule "(^|/)\.(?!well-known)" - [F,L]
+
+  # Security 2: Block sensitive extensions anywhere in URI (root or nested paths)
+  RewriteRule "\.(bak|config|sql|ini|log|sh|env|tar\.gz|tgz)$" - [F,NC,L]
 
   # 1. Content Negotiation: Serve Markdown for agents requesting text/markdown on homepage
   RewriteCond %{HTTP:Accept} text/markdown [NC,OR]
@@ -68,8 +85,9 @@ ErrorDocument 404 /404.html
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
 
-  # RFC 8288 Link response headers on HTML and Markdown endpoints pointing to llms.txt & index.md
-  <FilesMatch "\.(html|htm)$|^$">
+  # RFC 8288 Link response headers & Content Negotiation Vary headers
+  <FilesMatch "\.(html|htm|md)$|^$">
     Header set Link '<https://pdf1998.com/llms.txt>; rel="describedby"; type="text/plain", <https://pdf1998.com/index.md>; rel="alternate"; type="text/markdown"'
+    Header append Vary "Accept"
   </FilesMatch>
 </IfModule>

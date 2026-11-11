@@ -89,6 +89,9 @@ export const Navbar: React.FC = () => {
           <div className="relative">
             <button
               type="button"
+              aria-haspopup="true"
+              aria-expanded={dropdownOpen}
+              aria-label="Explore all 20 PDF tools"
               onClick={() => setDropdownOpen(!dropdownOpen)}
               onBlur={() => setTimeout(() => setDropdownOpen(false), 250)}
               className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
@@ -171,8 +174,10 @@ export const Navbar: React.FC = () => {
         {/* Mobile menu button */}
         <button
           type="button"
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={mobileMenuOpen}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100"
+          className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
