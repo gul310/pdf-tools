@@ -78,7 +78,7 @@ export const Home: React.FC = () => {
   return (
     <>
       <SEO
-        title="PDF Tools — 100% Free & Private Online PDF Suite (Client-Side)"
+        title="PDF1998 — 100% Free & Private Online PDF Suite (Client-Side)"
         description="The ultimate free in-browser PDF suite. 20 client-side tools: merge, split, compress, convert to Word/Excel/PPT, sign, edit, protect with AES-256, and more. Zero server uploads."
       />
 
@@ -116,43 +116,46 @@ export const Home: React.FC = () => {
         </div>
 
         {/* Feature Highlights Bar */}
-        <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+        <section aria-labelledby="features-heading" className="mt-16 max-w-4xl mx-auto">
+          <h2 id="features-heading" className="sr-only">Key Security and Performance Advantages</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">Total Data Privacy</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Zero files uploaded or saved to remote servers. All processing runs locally in browser memory.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm">Total Data Privacy</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Zero files uploaded or saved to remote servers. All processing runs locally in browser memory.
-              </p>
-            </div>
-          </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-              <Zap className="w-5 h-5" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">Blazing Fast Speed</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Zero upload/download waiting times. Uses your computer's native processor.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm">Blazing Fast Speed</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Zero upload/download waiting times. Uses your computer's native processor.
-              </p>
-            </div>
-          </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-              <Cpu className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm">QPDF WebAssembly</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Industry-grade C++ PDF engine compiled to WASM for bulletproof reliability.
-              </p>
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">QPDF WebAssembly</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Industry-grade C++ PDF engine compiled to WASM for bulletproof reliability.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Tools Grid */}
         <div id="tools-grid" className="mt-20 scroll-mt-24">

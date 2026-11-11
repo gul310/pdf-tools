@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node prerender.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node test-production-qa.mjs && npx tsx test-extended-tools.mjs && npx tsx test-phase-b.mjs && npx tsx test-phase-c.mjs"
+    "test": "node test-production-qa.mjs && node test-extended-tools.mjs && node test-phase-b.mjs && node test-phase-c.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",

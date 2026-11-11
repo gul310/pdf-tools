@@ -1,4 +1,4 @@
-import { getCanonicalUrl } from '../config/site';
+import { getCanonicalUrl } from '../config/site.ts';
 import type { ToolData } from './toolsData';
 
 export const EXTENDED_TOOLS_DATA: Record<string, ToolData> = {

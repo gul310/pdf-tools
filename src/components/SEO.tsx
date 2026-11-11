@@ -22,11 +22,62 @@ export const SEO: React.FC<SEOProps> = ({
   const metaDescription = tool ? tool.metaDescription : (description || SITE_CONFIG.description);
   const canonicalUrl = tool ? tool.canonicalUrl : (canonical || getCanonicalUrl('/'));
 
+  // Organization Schema
+  const organizationSchema = {
+    '@type': 'Organization',
+    '@id': `${SITE_CONFIG.domain}/#organization`,
+    name: SITE_CONFIG.name,
+    url: `${SITE_CONFIG.domain}/`,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${SITE_CONFIG.domain}/favicon.svg`
+    },
+    description: SITE_CONFIG.description,
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        email: SITE_CONFIG.contactEmail,
+        url: `${SITE_CONFIG.domain}/contact`
+      }
+    ],
+    sameAs: [
+      SITE_CONFIG.githubUrl
+    ]
+  };
+
+  // WebSite Schema
+  const webSiteSchema = {
+    '@type': 'WebSite',
+    '@id': `${SITE_CONFIG.domain}/#website`,
+    name: SITE_CONFIG.name,
+    url: `${SITE_CONFIG.domain}/`,
+    publisher: {
+      '@id': `${SITE_CONFIG.domain}/#organization`
+    },
+    description: SITE_CONFIG.description
+  };
+
+  // WebPage Schema
+  const webPageSchema = {
+    '@type': 'WebPage',
+    '@id': `${canonicalUrl}#webpage`,
+    url: canonicalUrl,
+    name: pageTitle,
+    description: metaDescription,
+    isPartOf: {
+      '@id': `${SITE_CONFIG.domain}/#website`
+    },
+    about: {
+      '@id': `${SITE_CONFIG.domain}/#organization`
+    }
+  };
+
   // Schema: SoftwareApplication
   const softwareAppSchema = {
-    '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: tool ? tool.name : 'PDF Tools Suite',
+    '@id': `${canonicalUrl}#software`,
+    name: tool ? `${tool.name} — ${SITE_CONFIG.name}` : `${SITE_CONFIG.name} Suite`,
     applicationCategory: 'UtilitiesApplication',
     operatingSystem: 'Any (Web Browser)',
     offers: {
@@ -35,12 +86,14 @@ export const SEO: React.FC<SEOProps> = ({
       priceCurrency: 'USD'
     },
     description: metaDescription,
-    url: canonicalUrl
+    url: canonicalUrl,
+    provider: {
+      '@id': `${SITE_CONFIG.domain}/#organization`
+    }
   };
 
   // Schema: FAQPage (if tool has faqs)
   const faqSchema = tool?.faqs ? {
-    '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: tool.faqs.map(faq => ({
       '@type': 'Question',
@@ -54,7 +107,6 @@ export const SEO: React.FC<SEOProps> = ({
 
   // Schema: HowTo (if tool has steps)
   const howToSchema = tool?.howToSteps ? {
-    '@context': 'https://schema.org',
     '@type': 'HowTo',
     name: `How to ${tool.name}`,
     description: tool.directAnswer,
@@ -68,7 +120,6 @@ export const SEO: React.FC<SEOProps> = ({
 
   // Schema: BreadcrumbList
   const breadcrumbSchema = tool ? {
-    '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       {
@@ -86,6 +137,23 @@ export const SEO: React.FC<SEOProps> = ({
     ]
   } : null;
 
+  // Unified @graph schema
+  const graphEntities: any[] = [
+    organizationSchema,
+    webSiteSchema,
+    webPageSchema,
+    softwareAppSchema
+  ];
+
+  if (faqSchema) graphEntities.push(faqSchema);
+  if (howToSchema) graphEntities.push(howToSchema);
+  if (breadcrumbSchema) graphEntities.push(breadcrumbSchema);
+
+  const unifiedSchema = {
+    '@context': 'https://schema.org',
+    '@graph': graphEntities
+  };
+
   return (
     <Helmet>
       {/* Primary Meta Tags */}
@@ -100,7 +168,7 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={metaDescription} />
-      <meta property="og:site_name" content="PDF Tools Pro" />
+      <meta property="og:site_name" content={SITE_CONFIG.name} />
 
       {/* Twitter */}
       <meta property="twitter:card" content="summary_large_image" />
@@ -109,28 +177,13 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="twitter:description" content={metaDescription} />
 
       {/* Security & Client-Side Privacy Notice */}
-      <meta name="application-name" content="PDF Tools Pro" />
+      <meta name="application-name" content={SITE_CONFIG.name} />
       <meta name="robots" content="index, follow" />
 
       {/* JSON-LD Structured Data */}
       <script type="application/ld+json">
-        {JSON.stringify(softwareAppSchema)}
+        {JSON.stringify(unifiedSchema)}
       </script>
-      {faqSchema && (
-        <script type="application/ld+json">
-          {JSON.stringify(faqSchema)}
-        </script>
-      )}
-      {howToSchema && (
-        <script type="application/ld+json">
-          {JSON.stringify(howToSchema)}
-        </script>
-      )}
-      {breadcrumbSchema && (
-        <script type="application/ld+json">
-          {JSON.stringify(breadcrumbSchema)}
-        </script>
-      )}
     </Helmet>
   );
 };

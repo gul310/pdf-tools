@@ -8,8 +8,8 @@ export const Terms: React.FC = () => {
   return (
     <>
       <SEO
-        title="Terms of Service — PDF Tools Pro"
-        description="Review the terms, conditions, and acceptable use guidelines governing the use of PDF Tools Pro client-side utilities."
+        title="Terms of Service — PDF1998"
+        description="Review the terms, conditions, and acceptable use guidelines governing the use of PDF1998 client-side utilities."
         canonical={getCanonicalUrl('/terms')}
       />
 
@@ -27,7 +27,7 @@ export const Terms: React.FC = () => {
               Terms of Service
             </h1>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-              Please read these Terms of Service carefully before utilizing the PDF Tools Pro web application.
+              Please read these Terms of Service carefully before utilizing the PDF1998 web application.
             </p>
           </div>
 

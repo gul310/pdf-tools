@@ -8,8 +8,8 @@ export const PrivacyPolicy: React.FC = () => {
   return (
     <>
       <SEO
-        title="Privacy Policy — PDF Tools Pro Client-Side Architecture"
-        description="Read the complete Privacy Policy of PDF Tools Pro. Discover how our client-side WebAssembly architecture ensures zero PDF files are ever uploaded or retained."
+        title="Privacy Policy — PDF1998 Client-Side Architecture"
+        description="Read the complete Privacy Policy of PDF1998. Discover how our client-side WebAssembly architecture ensures zero PDF files are ever uploaded or retained."
         canonical={getCanonicalUrl('/privacy-policy')}
       />
 

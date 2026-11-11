@@ -140,7 +140,7 @@ export const Blog: React.FC = () => {
   return (
     <>
       <SEO
-        title="PDF Technology & Security Blog — Insights by PDF Tools Pro"
+        title="PDF Technology & Security Blog — Insights by PDF1998"
         description="Explore technical articles, privacy guides, and tutorials on WebAssembly PDF processing, AES-256 security, lossless compression, and document management."
         canonical={getCanonicalUrl('/blog')}
       />

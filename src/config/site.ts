@@ -1,13 +1,13 @@
 // Centralized Production Site Configuration
 export const SITE_CONFIG = {
-  name: 'PDF Tools Pro',
-  title: 'PDF Tools Pro — 100% Free & Private Online PDF Suite',
+  name: 'PDF1998',
+  title: 'PDF1998 — 100% Free & Private Online PDF Suite',
   description: 'The premier client-side PDF utility suite. Merge, split, compress, protect with AES-256, unlock, rotate, and convert PDFs directly in your browser. Zero server uploads, total privacy.',
   // Base domain for production deployment (Hostinger / Apache)
-  domain: 'https://pdftools-pro.com',
-  author: 'PDF Tools Engineering Team',
-  contactEmail: 'support@pdftools-pro.com',
-  twitterHandle: '@pdftoolspro'
+  domain: 'https://pdf1998.com',
+  author: 'PDF1998 Engineering Team',
+  contactEmail: 'support@pdf1998.com',
+  githubUrl: 'https://github.com/gul310/pdf-tools'
 };
 
 export function getCanonicalUrl(path: string): string {

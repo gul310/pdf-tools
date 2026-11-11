@@ -33,8 +33,8 @@ export const Contact: React.FC = () => {
   return (
     <>
       <SEO
-        title="Contact Us — PDF Tools Pro Support & Inquiries"
-        description="Have questions or feedback about our client-side PDF utilities? Get in touch with the PDF Tools Pro team. We respond within 24 business hours."
+        title="Contact Us — PDF1998 Support & Inquiries"
+        description="Have questions or feedback about our client-side PDF utilities? Get in touch with the PDF1998 team. We respond within 24 business hours."
         canonical={getCanonicalUrl('/contact')}
       />
 

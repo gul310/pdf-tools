@@ -1,0 +1,123 @@
+# PDF1998 — Comprehensive AI Agent Specification & Technical Documentation
+
+> PDF1998 (https://pdf1998.com/) is an in-browser suite of 20 client-side PDF and office document processing tools. This document provides complete technical specifications, parameter schemas, operational constraints, and security properties for autonomous AI agents, web crawlers, and LLM reasoning engines.
+
+## 1. Technical Architecture
+
+### 1.1 Client-Side Execution Sandbox
+- Execution Environment: Browser memory (WebAssembly + HTML5 Canvas + Web Workers).
+- Network Transmission: 0 bytes of document payload ever leave the client. No cloud storage, no API gateways, no temporary disk storage.
+- Core Engines:
+  - **QPDF WASM**: Linearization, encryption/decryption, stream compaction, object tree repairs.
+  - **PDF-Lib**: Document creation, page merging, page extraction, geometry rotation, watermark embedding, page numbering.
+  - **PDF.js**: Multi-threaded canvas rendering, text layer extraction, bounding box detection.
+  - **Mammoth & Docx**: Word (.docx) parsing, AST generation, OpenXML packaging.
+  - **SheetJS (XLSX)**: Spreadsheet workbook compilation and tabular extraction.
+  - **PptxGenJS**: OpenXML slide deck presentation synthesis.
+
+## 2. All 20 Document Tools & Parameter Specifications
+
+### Core Utilities
+1. **Merge PDF** (`/merge-pdf`):
+   - Input: 2 or more PDF documents (`application/pdf`).
+   - Operation: Concatenates page trees into a single PDF preserving fonts, form streams, and vector drawings.
+   - Output: Merged single PDF document.
+
+2. **Split PDF** (`/split-pdf`):
+   - Input: 1 PDF document.
+   - Options: Custom page ranges (e.g., `1-3, 5, 8-10`) or "Extract All Pages".
+   - Output: Individual PDF files or ZIP archive containing single-page PDFs.
+
+3. **Compress PDF** (`/compress-pdf`):
+   - Input: 1 PDF document.
+   - Mechanism: Re-linearizes object streams, consolidates font dictionaries, strips dead object references using QPDF WASM.
+   - Output: Compacted valid PDF document.
+
+4. **Protect PDF** (`/protect-pdf`):
+   - Input: 1 PDF document + user/owner password.
+   - Cipher: True 256-bit AES encryption with standard cryptographic handler.
+   - Output: Encrypted PDF requiring password authentication.
+
+5. **Unlock PDF** (`/unlock-pdf`):
+   - Input: 1 AES/RC4 password-encrypted PDF + decryption password.
+   - Mechanism: Validates key authentication and removes encryption dictionaries.
+   - Output: Decrypted plain PDF.
+
+6. **Rotate PDF** (`/rotate-pdf`):
+   - Input: 1 PDF document.
+   - Parameter: Angle (90°, 180°, 270° clockwise) per-page or globally.
+   - Output: PDF with updated `/Rotate` dictionary tags.
+
+7. **Delete PDF Pages** (`/delete-pdf-pages`):
+   - Input: 1 PDF document + array of 1-based page indices to excise.
+   - Constraint: Cannot delete all pages; at least 1 page must remain.
+   - Output: Modified PDF without target pages.
+
+8. **PDF to Image** (`/pdf-to-image`):
+   - Input: 1 PDF document.
+   - Output Format: JPG (`image/jpeg`) or PNG (`image/png`) at 150/300 DPI.
+   - Output: Single image file or ZIP archive of all page images.
+
+9. **Image to PDF** (`/image-to-pdf`):
+   - Input: 1 or more image files (PNG, JPG, JPEG, WebP).
+   - Layout: Standard A4 (595.28 x 841.89 pt) or US Letter with 20pt proportional margins.
+   - Output: Unified PDF document.
+
+10. **Add Watermark** (`/add-watermark-pdf`):
+    - Input: 1 PDF document.
+    - Options: Watermark text, opacity (0.1–1.0), rotation (-45° default), color.
+    - Output: Stamped PDF document.
+
+### Extended Conversion & Editing Tools
+11. **PDF to Word** (`/pdf-to-word`):
+    - Input: 1 PDF document.
+    - Output: Microsoft Word `.docx` file.
+    - Modes: Mode A (Reflowable text extraction) or Mode B (High-fidelity visual preservation).
+
+12. **Word to PDF** (`/word-to-pdf`):
+    - Input: Microsoft Word `.docx` document.
+    - Output: Clean PDF document.
+
+13. **PDF to Excel** (`/pdf-to-excel`):
+    - Input: 1 PDF document containing tabular data.
+    - Output: Microsoft Excel `.xlsx` workbook.
+
+14. **Excel to PDF** (`/excel-to-pdf`):
+    - Input: Excel workbook (`.xlsx`, `.xls`).
+    - Output: Structured PDF document.
+
+15. **PDF to PowerPoint** (`/pdf-to-ppt`):
+    - Input: 1 PDF document.
+    - Output: Microsoft PowerPoint `.pptx` presentation.
+
+16. **PowerPoint to PDF** (`/ppt-to-pdf`):
+    - Input: PowerPoint `.pptx` presentation.
+    - Output: Presentation PDF document.
+
+17. **Sign PDF** (`/sign-pdf`):
+    - Input: 1 PDF document.
+    - Function: Place electronic signatures onto target coordinates.
+    - Standard: Simple Electronic Signature (SES).
+
+18. **Edit PDF** (`/edit-pdf`):
+    - Input: 1 PDF document.
+    - Function: In-browser annotation, freehand markup, and vector text overlays.
+
+19. **Add Page Numbers** (`/add-page-numbers`):
+    - Input: 1 PDF document.
+    - Options: Position (Bottom-Center, Bottom-Right, Top-Right), format (`Page {n} of {total}`).
+
+20. **Crop PDF** (`/crop-pdf`):
+    - Input: 1 PDF document.
+    - Function: Adjusts `/CropBox` viewport dimensions.
+
+## 3. Machine-Readable Endpoints & Headers
+
+- Site URL: `https://pdf1998.com/`
+- Markdown representation: `https://pdf1998.com/index.md` (also via `Accept: text/markdown`)
+- Context for AI Agents: `https://pdf1998.com/llms.txt`
+- Sitemap Index: `https://pdf1998.com/sitemap.xml`
+- Robots Policy: `https://pdf1998.com/robots.txt`
+- Content Signals: `Content-Signal: ai-train=no, ai-input=yes, search=yes`
+- Contact: `mailto:support@pdf1998.com`
+

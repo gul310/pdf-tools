@@ -6,12 +6,22 @@ node_modules/
 .pnp.js
 
 # ==========================================
-# Production Builds
+# Production Builds & Release Archives
 # ==========================================
 dist/
 dist-ssr/
 build/
 *.tsbuildinfo
+*.zip
+*.tar.gz
+production-backups/
+test-rollback-backups/
+test-rollback-target/
+test-conversion-evidence/
+test-deep-final-evidence/
+test-tools-evidence/
+all-tools-boundary-evidence.json
+conversion-fidelity-evidence.json
 
 # ==========================================
 # Environment Variables & Private Credentials

@@ -18,7 +18,7 @@ export const Footer: React.FC = () => {
                 <FileText className="w-5 h-5" />
               </div>
               <span className="text-xl font-black text-slate-900">
-                PDF<span className="text-blue-600">Tools</span>
+                PDF<span className="text-blue-600">1998</span>
               </span>
             </div>
             <p className="text-slate-500 max-w-sm leading-relaxed text-xs sm:text-sm">
@@ -106,13 +106,23 @@ export const Footer: React.FC = () => {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <a href="/llms.txt" className="hover:text-blue-600 transition-colors block text-slate-600 font-medium">
+                  AI Context (llms.txt)
+                </a>
+              </li>
+              <li>
+                <a href="mailto:support@pdf1998.com" className="hover:text-blue-600 transition-colors block text-blue-600 font-medium">
+                  support@pdf1998.com
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
         {/* Bottom copyright and disclaimer */}
         <div className="mt-12 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} PDF Tools. All rights reserved. 100% private in-browser document processing.</p>
+          <p>© 2026 PDF1998. All rights reserved. 100% private in-browser document processing.</p>
           <p className="text-slate-400">
             Powered by WebAssembly, PDF-Lib & QPDF. Files are never stored or uploaded.
           </p>

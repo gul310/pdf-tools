@@ -44,7 +44,7 @@ name: Production Release & Hostinger Deployment Gate
 # 5. CLOUDFLARE PAGES INDEPENDENCE:
 #    - Cloudflare Pages (https://pdf-tools-c85.pages.dev/) remains the active,
 #      permanent staging & preview environment with X-Robots-Tag: noindex.
-#    - Hostinger exclusively serves production (https://pdftools-pro.com/).
+#    - Hostinger exclusively serves production (https://pdf1998.com/).
 # ==============================================================================
 
 on:
@@ -263,7 +263,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production-hostinger
-      url: https://pdftools-pro.com/
+      url: https://pdf1998.com/
     steps:
       - name: Download Verified Build Artifact
         uses: actions/download-artifact@c850b08b16a805eb263aa150a21a340cf5dd5649 # v4.1.4
@@ -306,7 +306,7 @@ jobs:
           echo "=========================================================="
           echo "EXECUTING STRICT POST-DEPLOYMENT HEALTH & INTEGRITY CHECKS"
           echo "=========================================================="
-          BASE_URL="https://pdftools-pro.com"
+          BASE_URL="https://pdf1998.com"
 
           # 1. Homepage & SSL Certificate Validation (Strict SSL, no -k)
           echo "Checking: $BASE_URL/ (Homepage HTML & SSL Certificate)..."
@@ -315,7 +315,7 @@ jobs:
             echo "::error:: Homepage did not return expected application root element."
             exit 1
           fi
-          if ! echo "$HOME_HTML" | grep -q 'PDF Tools'; then
+          if ! echo "$HOME_HTML" | grep -q 'PDF1998'; then
             echo "::error:: Homepage did not return expected title or branding."
             exit 1
           fi
@@ -388,7 +388,7 @@ jobs:
           # 5. robots.txt Verification
           echo "Checking: $BASE_URL/robots.txt..."
           ROBOTS_TXT=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "$BASE_URL/robots.txt")
-          if ! echo "$ROBOTS_TXT" | grep -q 'Sitemap: https://pdftools-pro.com/sitemap.xml'; then
+          if ! echo "$ROBOTS_TXT" | grep -q 'Sitemap: https://pdf1998.com/sitemap.xml'; then
             echo "::error:: /robots.txt does not reference production sitemap."
             exit 1
           fi
@@ -401,11 +401,20 @@ jobs:
             echo "::error:: /sitemap.xml does not contain valid XML urlset."
             exit 1
           fi
-          if ! echo "$SITEMAP_XML" | grep -q 'https://pdftools-pro.com/merge-pdf'; then
+          if ! echo "$SITEMAP_XML" | grep -q 'https://pdf1998.com/merge-pdf'; then
             echo "::error:: /sitemap.xml missing canonical tool entries."
             exit 1
           fi
           echo "  -> PASS: /sitemap.xml verified."
+
+          # 7. llms.txt Verification
+          echo "Checking: $BASE_URL/llms.txt..."
+          LLMS_TXT=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 15 "$BASE_URL/llms.txt")
+          if ! echo "$LLMS_TXT" | grep -q '# PDF1998'; then
+            echo "::error:: /llms.txt does not contain expected header."
+            exit 1
+          fi
+          echo "  -> PASS: /llms.txt verified."
 
           echo "=========================================================="
           echo "ALL CRITICAL ENDPOINTS & ASSETS PASSED STRICT SMOKE TESTS"

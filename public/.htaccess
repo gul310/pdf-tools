@@ -1,52 +1,75 @@
+# ==============================================================================
+# PDF1998 — Apache / Hostinger Production Server Configuration
+# ==============================================================================
+
+ErrorDocument 404 /404.html
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Redirect non-HTTPS to HTTPS in production
-  # RewriteCond %{HTTPS} off
-  # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  # 1. Content Negotiation: Serve Markdown for agents requesting text/markdown on homepage
+  RewriteCond %{HTTP:Accept} text/markdown [NC,OR]
+  RewriteCond %{HTTP:Accept} text/x-markdown [NC]
+  RewriteCond %{REQUEST_URI} ^/?$ [OR]
+  RewriteCond %{REQUEST_URI} ^/index\.html$
+  RewriteRule ^ index.md [T=text/markdown,L]
 
-  # Direct file or directory requests
+  # 2. Existing static files and directories are served directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Redirect legacy and alias paths (301 Permanent)
+  # 3. Permanent 301 Redirects for Legacy / Alias Paths
   RewriteRule ^delete-pages/?$ /delete-pdf-pages [R=301,L]
   RewriteRule ^add-watermark/?$ /add-watermark-pdf [R=301,L]
   RewriteRule ^page-numbers/?$ /add-page-numbers [R=301,L]
   RewriteRule ^terms-of-service/?$ /terms [R=301,L]
 
-  # Route all other URLs to index.html for Single Page Application
-  RewriteRule ^ index.html [L]
+  # 4. Route Prerendered Static HTML Pages (folder/index.html or page.html)
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^([a-zA-Z0-9_-]+)/?$ $1/index.html [L]
+
+  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+  RewriteRule ^([a-zA-Z0-9_-]+)/?$ $1.html [L]
+
+  # 5. Unknown paths return genuine HTTP 404 status via custom 404 page
+  # (Do NOT rewrite unknown paths to index.html with 200 OK)
+  RewriteRule ^ - [R=404,L]
 </IfModule>
 
-# Correct MIME Types for WebAssembly, Modern JS Workers, and SVGs
+# Correct MIME Types for WebAssembly, Modern JS Workers, SVGs, Markdown, and TXT
 <IfModule mod_mime.c>
   AddType application/wasm .wasm
   AddType text/javascript .mjs
   AddType text/javascript .js
   AddType image/svg+xml .svg
   AddType application/json .json
+  AddType text/markdown .md
+  AddType text/plain .txt
 </IfModule>
 
-# Browser Caching for Immutable Static Assets
+# Browser Caching Policy
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresDefault "access plus 1 month"
   ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType text/markdown "access plus 0 seconds"
+  ExpiresByType text/plain "access plus 0 seconds"
   ExpiresByType application/wasm "access plus 1 year"
   ExpiresByType text/javascript "access plus 1 year"
   ExpiresByType text/css "access plus 1 year"
   ExpiresByType image/svg+xml "access plus 1 year"
 </IfModule>
 
-# Security Headers
+# Security Headers & AI Agent Discovery Headers
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
-  # Cross-Origin Isolation for high-performance WASM if needed
-  # Header set Cross-Origin-Embedder-Policy "require-corp"
-  # Header set Cross-Origin-Opener-Policy "same-origin"
+
+  # RFC 8288 Link response headers on HTML and Markdown endpoints pointing to llms.txt & index.md
+  <FilesMatch "\.(html|htm)$|^$">
+    Header set Link '<https://pdf1998.com/llms.txt>; rel="describedby"; type="text/plain", <https://pdf1998.com/index.md>; rel="alternate"; type="text/markdown"'
+  </FilesMatch>
 </IfModule>

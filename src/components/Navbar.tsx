@@ -66,7 +66,7 @@ export const Navbar: React.FC = () => {
           </div>
           <div>
             <span className="text-lg font-black tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
-              PDF<span className="text-blue-600">Tools</span>
+              PDF<span className="text-blue-600">1998</span>
             </span>
             <span className="hidden sm:inline-block ml-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 rounded-full">
               Local WASM

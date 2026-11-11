@@ -7,7 +7,7 @@ export const NotFound: React.FC = () => {
   return (
     <div className="min-h-[75vh] flex items-center justify-center px-4 py-16">
       <Helmet>
-        <title>404 - Page Not Found | PDF Tools</title>
+        <title>404 - Page Not Found | PDF1998</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="max-w-md w-full text-center space-y-6 bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-sm">

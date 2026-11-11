@@ -1,4 +1,4 @@
-import { getCanonicalUrl } from '../config/site';
+import { getCanonicalUrl } from '../config/site.ts';
 
 export interface ToolFAQ {
   question: string;
@@ -507,7 +507,7 @@ TOOLS_DATA['delete-pages'] = TOOLS_DATA['delete-pdf-pages'];
 TOOLS_DATA['add-watermark'] = TOOLS_DATA['add-watermark-pdf'];
 
 // Merge the 10 extended tools
-import { EXTENDED_TOOLS_DATA } from './extendedToolsData';
+import { EXTENDED_TOOLS_DATA } from './extendedToolsData.ts';
 Object.assign(TOOLS_DATA, EXTENDED_TOOLS_DATA);
 
 export const ALL_TOOLS_LIST: ToolData[] = [

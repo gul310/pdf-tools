@@ -744,6 +744,6 @@ export async function addWatermarkPDF(
 }
 
 // Re-export extended PDF tools utilities, file integrity, and conversion validation
-export * from './extendedPdfUtils';
-export * from './fileIntegrity';
-export * from './conversionValidator';
+export * from './extendedPdfUtils.ts';
+export * from './fileIntegrity.ts';
+export * from './conversionValidator.ts';

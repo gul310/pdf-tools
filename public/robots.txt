@@ -1,6 +1,31 @@
 # https://www.robotstxt.org/robotstxt.html
+# Content Signals Policy Directive
+Content-Signal: ai-train=no, ai-input=yes, search=yes
+
+# Explicit Allowances for Verified AI Agents & Search Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
 User-agent: *
 Allow: /
 
-# Hostinger / Production Sitemap Location
-Sitemap: https://pdftools-pro.com/sitemap.xml
+# Production Sitemap Location
+Sitemap: https://pdf1998.com/sitemap.xml

@@ -16,8 +16,8 @@ import {
 import * as XLSX from 'xlsx';
 import pptxgen from 'pptxgenjs';
 import * as mammoth from 'mammoth';
-import { fileToArrayBuffer } from './pdfUtils';
-import { createWorkingBuffer, createWorkingUint8Array } from './fileIntegrity';
+import { fileToArrayBuffer } from './pdfUtils.ts';
+import { createWorkingBuffer, createWorkingUint8Array } from './fileIntegrity.ts';
 
 // Helper to convert hex color to pdf-lib rgb
 export function hexToRgbPdf(hex: string) {

@@ -1,0 +1,54 @@
+# PDF1998 — Free & Private In-Browser PDF Suite
+
+> PDF1998 (https://pdf1998.com/) is a high-speed, 100% client-side web document utility suite. All PDF manipulation, conversion, encryption, and editing processes run strictly within the user's browser memory using WebAssembly (QPDF) and local JavaScript. Files are never uploaded, transferred, or stored on remote servers.
+
+## Core Architecture & Privacy Model
+
+- **Zero Server Uploads**: Document bytes never transit the network. Processing occurs locally inside the browser tab memory space.
+- **WebAssembly Engine**: High-performance linear processing powered by compiled QPDF C++ binaries and PDF-Lib.
+- **Client-Side Cryptography**: Legitimate 256-bit AES encryption (`/protect-pdf`) and decryption (`/unlock-pdf`) executed in-memory.
+- **Format Conversions**: Bi-directional conversions between PDF, Microsoft Office (Word, Excel, PowerPoint), and raster images (JPG, PNG) with user-selectable reflow or exact visual rendering modes.
+- **Offline Capable**: Once assets are cached, all 20 tools function without network connectivity.
+
+## Core PDF Tools
+
+- [Merge PDF](https://pdf1998.com/merge-pdf): Combine multiple PDF documents into a single ordered file with drag-and-drop page ordering.
+- [Split PDF](https://pdf1998.com/split-pdf): Extract custom page ranges or decompose documents into separate individual single-page files packed in a ZIP archive.
+- [Compress PDF](https://pdf1998.com/compress-pdf): Reduce file size via QPDF stream linearization, duplicate object deduplication, and image downsampling with zero server roundtrips.
+- [Protect PDF](https://pdf1998.com/protect-pdf): Secure sensitive files with true 256-bit AES password encryption and permission controls.
+- [Unlock PDF](https://pdf1998.com/unlock-pdf): Authenticate with valid document passwords to cleanly remove encryption and restrictions.
+- [Rotate PDF](https://pdf1998.com/rotate-pdf): Permanently adjust page orientations by 90, 180, or 270 degrees.
+- [Delete PDF Pages](https://pdf1998.com/delete-pdf-pages): Selectively delete unwanted pages from PDF files with visual thumbnails.
+- [PDF to Image](https://pdf1998.com/pdf-to-image): Render and export PDF pages into crisp JPG or PNG images using HTML5 Canvas and PDF.js.
+- [Image to PDF](https://pdf1998.com/image-to-pdf): Convert PNG, JPG, and WebP graphics into standardized A4/Letter PDF documents.
+- [Add Watermark](https://pdf1998.com/add-watermark-pdf): Stamp custom vector text watermarks with adjustable opacity, angle, and positioning.
+
+## Extended Office Conversion & Editing Tools
+
+- [PDF to Word](https://pdf1998.com/pdf-to-word): Convert PDFs into editable Microsoft Word (.docx) documents with reflowable text and formatting.
+- [Word to PDF](https://pdf1998.com/word-to-pdf): Convert Word documents (.docx) into clean, standardized PDF files client-side.
+- [PDF to Excel](https://pdf1998.com/pdf-to-excel): Extract tabular data and tables into spreadsheet-ready Excel (.xlsx) workbooks.
+- [Excel to PDF](https://pdf1998.com/excel-to-pdf): Convert spreadsheets (.xlsx, .xls) into printable PDF reports.
+- [PDF to PowerPoint](https://pdf1998.com/pdf-to-ppt): Transform PDF slides and pages into editable PowerPoint (.pptx) presentations.
+- [PowerPoint to PDF](https://pdf1998.com/ppt-to-pdf): Convert PowerPoint slide decks (.pptx) into presentation-ready PDFs.
+- [Sign PDF](https://pdf1998.com/sign-pdf): Draw, type, or stamp electronic signatures onto contracts with exact coordinate placement.
+- [Edit PDF](https://pdf1998.com/edit-pdf): Add text annotations, highlight content, and draw markup on existing PDF pages.
+- [Add Page Numbers](https://pdf1998.com/add-page-numbers): Number documents with customizable headers, footers, margins, and numbering formats.
+- [Crop PDF](https://pdf1998.com/crop-pdf): Adjust CropBox and MediaBox margins to trim excess margins from documents.
+
+## Institutional & Legal Information
+
+- [About PDF1998](https://pdf1998.com/about): Mission, technical architecture, and privacy-first engineering standards.
+- [Blog & Guides](https://pdf1998.com/blog): In-depth technical articles on client-side WebAssembly, encryption, and document hygiene.
+- [Contact Support](https://pdf1998.com/contact): Direct engineering inquiries, bug reports, and assistance.
+- [Privacy Policy](https://pdf1998.com/privacy-policy): Formal statement regarding zero-upload data handling and GDPR/CCPA alignment.
+- [Terms of Service](https://pdf1998.com/terms): Terms and conditions governing use of client-side utilities.
+
+## Machine-Readable Contacts & Specifications
+
+- Support Email: [support@pdf1998.com](mailto:support@pdf1998.com)
+- Official GitHub Repository: [https://github.com/gul310/pdf-tools](https://github.com/gul310/pdf-tools)
+- Markdown Summary: [https://pdf1998.com/index.md](https://pdf1998.com/index.md)
+- Complete LLM Specification: [https://pdf1998.com/llms-full.txt](https://pdf1998.com/llms-full.txt)
+- Sitemap: [https://pdf1998.com/sitemap.xml](https://pdf1998.com/sitemap.xml)
+

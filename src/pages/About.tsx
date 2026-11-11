@@ -8,7 +8,7 @@ export const About: React.FC = () => {
   return (
     <>
       <SEO
-        title="About PDF Tools Pro — Privacy-First WebAssembly PDF Engineering"
+        title="About PDF1998 — Privacy-First WebAssembly PDF Engineering"
         description="Learn about our mission to provide high-speed, 100% client-side PDF utilities. Powered by QPDF WebAssembly with zero server uploads and complete privacy."
         canonical={getCanonicalUrl('/about')}
       />
@@ -24,7 +24,7 @@ export const About: React.FC = () => {
               <span>Engineered for Maximum Confidentiality</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
-              About PDF Tools Pro
+              About PDF1998
             </h1>
             <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
               We believe document management should never come at the expense of your privacy, security, or compliance.
